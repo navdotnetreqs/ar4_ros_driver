@@ -93,7 +93,8 @@ class ArucoMarkerFollower(Node):
         self.arm.set_start_state_to_current_state()
 
         # set pose goal with PoseStamped message
-        self.arm.set_goal_state(pose_stamped_msg=pose_goal, pose_link="link_6")
+        self.arm.set_goal_state(pose_stamped_msg=pose_goal,
+                                pose_link="ee_link")
 
         # plan to goal
         self._plan_and_execute()
