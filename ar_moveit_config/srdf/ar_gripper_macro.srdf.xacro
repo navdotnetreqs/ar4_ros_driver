@@ -16,7 +16,7 @@
       <joint name="gripper_jaw1_joint" value="-0.012" />
     </group_state>
     <group_state name="closed" group="ar_gripper">
-      <joint name="gripper_jaw1_joint" value="-0.01" />
+      <joint name="gripper_jaw1_joint" value="-0.001" />
     </group_state>
     <disable_collisions link1="gripper_base_link" link2="gripper_jaw1_link" reason="Adjacent" />
     <disable_collisions link1="gripper_base_link" link2="gripper_jaw2_link" reason="Adjacent" />
