@@ -1,4 +1,4 @@
-<?xml version="1.0" ?>
+<?xml version="1.0"?>
 <!--This does not replace URDF, and is not an extension of URDF.
     This is a format for representing semantic information about the robot structure.
     A URDF file must exist for this robot as well, where the joints and the links that are referenced are defined
@@ -13,7 +13,7 @@
       <passive_joint name="gripper_jaw2_joint" />
     </group>
     <group_state name="open" group="ar_gripper">
-      <joint name="gripper_jaw1_joint" value="-0.012" />
+      <joint name="gripper_jaw1_joint" value="-0.027" />
     </group_state>
     <group_state name="closed" group="ar_gripper">
       <joint name="gripper_jaw1_joint" value="-0.001" />

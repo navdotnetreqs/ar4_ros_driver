@@ -82,7 +82,7 @@ def generate_launch_description():
         ))
     declared_arguments.append(
         DeclareLaunchArgument("ar_model",
-                              default_value="ar4",
+                              default_value="ar4_mk3",
                               choices=["ar4", "ar4_mk3"],
                               description="Model of AR4"))
 
@@ -168,6 +168,19 @@ def generate_launch_description():
         "publish_geometry_updates": True,
         "publish_state_updates": True,
         "publish_transforms_updates": True,
+        "publish_robot_description":True,
+	    "publish_robot_description_semantic":True
+        # ADDED THE TWO ABOVE ! https://github.com/moveit/moveit2_tutorials/issues/528
+#        nb5@dev:~/myar_ws$ ros2 run hello_moveit hello_moveit 
+#[ERROR] [1725100496.169520506] [hello_moveit]: Could not find parameter robot_description_semantic and did not receive robot_description_semantic via std_msgs::msg::String subscription within 10.000000 seconds.
+#Error:   Could not parse the SRDF XML File. Error=XML_ERROR_EMPTY_DOCUMENT ErrorID=13 (0xd) Line number=0
+#         at line 715 in ./src/model.cpp
+#[ERROR] [1725100496.176486256] [moveit_rdf_loader.rdf_loader]: Unable to parse SRDF
+#[FATAL] [1725100496.177118870] [move_group_interface]: Unable to construct robot model. Please make sure all needed information is on the parameter server.
+#terminate called after throwing an instance of 'std::runtime_error'
+#  what():  Unable to construct robot model. Please make sure all needed information is on the parameter server.
+#[ros2run]: Aborted
+
     }
 
     # Start the actual move_group node/action server

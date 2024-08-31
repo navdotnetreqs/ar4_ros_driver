@@ -1,4 +1,4 @@
-<?xml version="1.0" ?>
+<?xml version="1.0"?>
 <!--This does not replace URDF, and is not an extension of URDF.
     This is a format for representing semantic information about the robot structure.
     A URDF file must exist for this robot as well, where the joints and the links that are referenced are defined
@@ -12,7 +12,7 @@
       <joint name="joint_4" />
       <joint name="joint_5" />
       <joint name="joint_6" />
-      <joint name="ee_joint"/>
+      <joint name="ee_joint" />
     </group>
     <group_state name="home" group="ar_manipulator">
       <joint name="joint_1" value="0" />
@@ -24,8 +24,8 @@
     </group_state>
     <group_state name="upright" group="ar_manipulator">
       <joint name="joint_1" value="0" />
-      <joint name="joint_2" value="-0.087" />
-      <joint name="joint_3" value="-1.34" />
+      <joint name="joint_2" value="0" />
+      <joint name="joint_3" value="-1.55" />
       <joint name="joint_4" value="0" />
       <joint name="joint_5" value="0" />
       <joint name="joint_6" value="0" />

@@ -39,7 +39,7 @@ from launch_ros.substitutions import FindPackageShare
 
 def generate_launch_description():
     ar_model_arg = DeclareLaunchArgument("ar_model",
-                                         default_value="ar4",
+                                         default_value="ar4_mk3",
                                          choices=["ar4", "ar4_mk3"],
                                          description="Model of AR4")
     ar_model_config = LaunchConfiguration("ar_model")

@@ -26,7 +26,7 @@ def load_yaml(package_name, file_name):
 def generate_launch_description():
     ar_model_config = LaunchConfiguration("ar_model")
     ar_model_arg = DeclareLaunchArgument("ar_model",
-                                         default_value="ar4",
+                                         default_value="ar4_mk3",
                                          choices=["ar4", "ar4_mk3"],
                                          description="Model of AR4")
 
