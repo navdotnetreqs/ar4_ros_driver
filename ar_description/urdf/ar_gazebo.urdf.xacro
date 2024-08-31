@@ -1,20 +1,47 @@
 <?xml version="1.0"?>
 <robot xmlns:xacro="http://wiki.ros.org/xacro" name="$(arg ar_model)">
+  <xacro:arg name="simulation_controllers" default="" />
+  <xacro:arg name="include_gripper" default="true" />
+  <xacro:arg name="include_track" default="true" />
+
   <xacro:include filename="$(find ar_description)/urdf/ar_macro.xacro" />
-  <xacro:include filename="$(find ar_description)/urdf/ar_gripper_macro.xacro" />
   <xacro:include filename="$(find ar_description)/urdf/ar.ros2_control.xacro" />
   <xacro:include filename="$(find ar_description)/urdf/ar_gripper.ros2_control.xacro" />
 
-  <xacro:arg name="simulation_controllers" default="" />
+  <!-- clean this up -->
+  <xacro:property name="robot_parameters_file"
+    value="$(find ar_description)/config/$(arg ar_model).yaml" />
+  <xacro:property name="robot_parameters" value="${xacro.load_yaml(robot_parameters_file)}" />
+  <!-- clean this up -->
 
   <link name="world" />
-  <xacro:ar_robot 
-    parent="world"
-    robot_parameters_file="$(find ar_description)/config/$(arg ar_model).yaml"
-  >
-    <origin xyz="0 0 0" rpy="0 0 0" />
-  </xacro:ar_robot>
-  <xacro:ar_gripper parent="ee_link" />
+
+  <xacro:if value="$(arg include_track)">
+    <xacro:include filename="$(find ar_description)/urdf/ar_track.xacro" />
+    <xacro:ar_track
+      parent="world"
+      robot_parameters_file="$(find ar_description)/config/$(arg ar_model).yaml">
+      <origin xyz="0 0 0" rpy="0 0 0" />
+    </xacro:ar_track>
+    <xacro:ar_robot
+      parent="linear_slider_link"
+      robot_parameters_file="$(find ar_description)/config/$(arg ar_model).yaml">
+      <origin xyz="0 0 ${robot_parameters['linear_plate_height']}" rpy="0 0 0" />
+    </xacro:ar_robot>
+  </xacro:if>
+
+  <xacro:unless value="$(arg include_track)">
+    <xacro:ar_robot
+      parent="world"
+      robot_parameters_file="$(find ar_description)/config/$(arg ar_model).yaml">
+      <origin xyz="0 0 0" rpy="0 0 0" />
+    </xacro:ar_robot>
+  </xacro:unless>
+
+  <xacro:if value="$(arg include_gripper)">
+    <xacro:include filename="$(find ar_description)/urdf/ar_gripper_macro.xacro" />
+    <xacro:ar_gripper parent="ee_link" />
+  </xacro:if>
 
   <xacro:ar_ros2_control
     name="ARGazeboSystem"

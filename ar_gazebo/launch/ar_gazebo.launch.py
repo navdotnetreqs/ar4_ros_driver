@@ -100,6 +100,7 @@ def generate_launch_description():
         ],
     )
 
+
     # Gazebo nodes
     gazebo = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(

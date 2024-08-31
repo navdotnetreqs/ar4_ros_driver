@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="utf-8"?>
+<robot xmlns:xacro="http://wiki.ros.org/xacro">
+  <xacro:macro name="ar_track" params="parent
+  *origin
+  robot_parameters_file">
+
+    <xacro:property name="robot_parameters" value="${xacro.load_yaml(robot_parameters_file)}" />
+
+    <joint name="linear_base_joint" type="fixed">
+      <xacro:insert_block name="origin" />
+      <parent link="${parent}" />
+      <child link="linear_base_link" />
+    </joint>
+
+    <link name="linear_base_link">
+      <inertial>
+        <origin xyz="0 0 0" rpy="0 0 0" />
+        <mass value="0.7102" />
+        <inertia ixx="1e-3" ixy="0.0" ixz="0.0" iyy="1e-3" iyz="0.0" izz="1e-3" />
+      </inertial>
+      <visual>
+        <origin xyz="0 0 ${robot_parameters['linear_track_height'] / 2}" rpy="0 0 0" />
+        <geometry>
+          <box
+            size="${robot_parameters['linear_track_length']} 0.3 ${robot_parameters['linear_track_height']}" />
+        </geometry>
+        <material name="">
+          <color rgba="1 1 0 1" />
+        </material>
+      </visual>
+      <collision>
+        <origin xyz="0 0 ${robot_parameters['linear_track_height'] / 2}" rpy="0 0 0" />
+        <geometry>
+          <box
+            size="${robot_parameters['linear_track_length']} 0.3 ${robot_parameters['linear_track_height']}" />
+        </geometry>
+      </collision>
+    </link>
+
+    <joint name="linear_slider_joint" type="prismatic">
+      <parent link="linear_base_link" />
+      <child link="linear_slider_link" />
+      <origin xyz="0 0 ${robot_parameters['linear_track_height']}" rpy="0 0 0" />
+      <axis xyz="1 0 0" />
+      <limit lower="${-0.1-robot_parameters['linear_track_length']/2+0.15/2}"
+        upper="${robot_parameters['linear_track_length']/2-0.15/2}" effort="100" velocity="0.5" />
+    </joint>
+
+    <link name="linear_slider_link">
+      <inertial>
+        <origin xyz="0 0 0" rpy="0 0 0.0" />
+        <mass value="0.2" />
+        <inertia ixx="1e-3" ixy="0.0" ixz="0.0" iyy="1e-3" iyz="0.0" izz="1e-3" />
+      </inertial>
+      <visual>
+        <origin xyz="0 0 ${robot_parameters['linear_plate_height'] / 2}" rpy="0 0 0" />
+        <geometry>
+          <box size="0.15 0.3 ${robot_parameters['linear_plate_height']}" />
+        </geometry>
+        <material name="">
+          <color rgba="1 1 0 1" />
+        </material>
+      </visual>
+      <collision>
+        <origin xyz="0 0 ${robot_parameters['linear_plate_height'] / 2}" rpy="0 0 0" />
+        <geometry>
+          <box size="0.15 0.3 ${robot_parameters['linear_plate_height']}" />
+        </geometry>
+      </collision>
+    </link>
+
+  </xacro:macro>
+</robot>

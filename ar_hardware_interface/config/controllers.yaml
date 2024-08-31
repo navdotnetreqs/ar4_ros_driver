@@ -38,3 +38,8 @@ joint_trajectory_controller:
 gripper_controller:
   ros__parameters:
     joint: gripper_jaw1_joint
+
+track_controller:
+  ros__parameters:
+    joint: linear_slider_joint
+

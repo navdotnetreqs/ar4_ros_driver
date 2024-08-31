@@ -1,6 +1,7 @@
 controller_names:
   - joint_trajectory_controller
   - gripper_controller
+  - track_controller
 
 joint_trajectory_controller:
   action_ns: follow_joint_trajectory
@@ -20,3 +21,10 @@ gripper_controller:
   default: true
   joints:
     - gripper_jaw1_joint
+
+track_controller:
+  action_ns: follow_joint_trajectory
+  type: FollowJointTrajectory
+  default: true
+  joints:
+    - linear_slider_joint
