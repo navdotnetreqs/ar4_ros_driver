@@ -3,7 +3,7 @@ import yaml
 
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
-from launch.actions import DeclareLaunchArgument
+from launch.actions import DeclareLaunchArgument, OpaqueFunction
 from launch.conditions import IfCondition
 from launch_ros.actions import Node
 from launch_ros.substitutions import FindPackageShare
@@ -15,74 +15,32 @@ from launch.substitutions import (
     LaunchConfiguration,
 )
 
-
 def load_yaml(package_name, file_name):
     package_path = get_package_share_directory(package_name)
     absolute_file_path = os.path.join(package_path, file_name)
     with open(absolute_file_path, "r", encoding="utf-8") as file:
         return yaml.safe_load(file)
 
-
-def generate_launch_description():
-
-    # Command-line arguments
-    db_arg = DeclareLaunchArgument("db",
-                                   default_value="False",
-                                   description="Database flag")
+def launch_setup(context, *args, **kwargs):
     ar_model_config = LaunchConfiguration("ar_model")
     include_gripper = LaunchConfiguration("include_gripper")
     include_track = LaunchConfiguration("include_track")
 
-    declared_arguments = []
-    declared_arguments.append(db_arg)
-    declared_arguments.append(
-        DeclareLaunchArgument(
-            "use_sim_time",
-            default_value="False",
-            description="Make MoveIt use simulation time. This is needed "+\
-                "for trajectory planing in simulation.",
-        ))
-    declared_arguments.append(
-        DeclareLaunchArgument(
-            "include_gripper",
-            default_value="True",
-            description="Run the servo gripper",
-            choices=["True", "False"],
-        ))
-    declared_arguments.append(
-        DeclareLaunchArgument(
-            "include_track",
-            default_value="True",
-            description="Include a linear track",
-            choices=["True", "False"],
-        ))
-    declared_arguments.append(
-        DeclareLaunchArgument(
-            "rviz_config_file",
-            default_value="moveit.rviz",
-            description="Full path to the RViz configuration file to use",
-        ))
-    declared_arguments.append(
-        DeclareLaunchArgument("ar_model",
-                              default_value="ar4_mk3",
-                              choices=["ar4", "ar4_mk3"],
-                              description="Model of AR4"))
-
     robot_description_content = Command([
-        PathJoinSubstitution([FindExecutable(name="xacro")]),
-        " ",
-        PathJoinSubstitution([
-            FindPackageShare("ar_moveit_config"), "urdf", "fake_ar.urdf.xacro"
-        ]),
-        " ",
-        "ar_model:=",
-        ar_model_config,
-        " ",
-        "include_gripper:=",
-        include_gripper,
-        " ",
-        "include_track:=",
-        include_track,
+    PathJoinSubstitution([FindExecutable(name="xacro")]),
+    " ",
+    PathJoinSubstitution([
+        FindPackageShare("ar_moveit_config"), "urdf", "fake_ar.urdf.xacro"
+    ]),
+    " ",
+    "ar_model:=",
+    ar_model_config,
+    " ",
+    "include_gripper:=",
+    include_gripper,
+    " ",
+    "include_track:=",
+    include_track,
     ])
     robot_description = {"robot_description": robot_description_content}
 
@@ -136,11 +94,10 @@ def generate_launch_description():
     ompl_planning_pipeline_config["move_group"].update(ompl_planning_yaml)
 
 
-    if not include_track:
-        controllers_file = "config/controllers.yaml"
-    else:
+    if include_track.perform(context) == 'True':
         controllers_file = "config/track_controllers.yaml"
-
+    else:
+        controllers_file = "config/controllers.yaml"
 
     # Trajectory Execution Configuration
     controllers_yaml = load_yaml("ar_moveit_config", controllers_file)
@@ -224,10 +181,10 @@ def generate_launch_description():
         parameters=[robot_description],
     )
 
-    if not include_track:
-        controllers_file = "controllers.yaml"
-    else:
+    if include_track.perform(context) == 'True':
         controllers_file = "track_controllers.yaml"
+    else:
+        controllers_file = "controllers.yaml"
 
     # ros2_control using FakeSystem as hardware
     ros2_controllers_path = os.path.join(
@@ -297,7 +254,51 @@ def generate_launch_description():
     )
 
     nodes_to_start = [rviz_node, robot_state_publisher, run_move_group_node, ros2_control_node, mongodb_server_node,joint_state_broadcaster_spawner, joint_controller_spawner, gripper_controller_spawner]
-    return LaunchDescription(declared_arguments + nodes_to_start)
+    return nodes_to_start
+
+
+def generate_launch_description():
+
+    # Command-line arguments
+    db_arg = DeclareLaunchArgument("db",
+                                   default_value="False",
+                                   description="Database flag")
+    declared_arguments = []
+    declared_arguments.append(db_arg)
+    declared_arguments.append(
+        DeclareLaunchArgument(
+            "use_sim_time",
+            default_value="False",
+            description="Make MoveIt use simulation time. This is needed "+\
+                "for trajectory planing in simulation.",
+        ))
+    declared_arguments.append(
+        DeclareLaunchArgument(
+            "include_gripper",
+            default_value="True",
+            description="Run the servo gripper",
+            choices=["True", "False"],
+        ))
+    declared_arguments.append(
+        DeclareLaunchArgument(
+            "include_track",
+            default_value="True",
+            description="Include a linear track",
+            choices=["True", "False"],
+        ))
+    declared_arguments.append(
+        DeclareLaunchArgument(
+            "rviz_config_file",
+            default_value="moveit.rviz",
+            description="Full path to the RViz configuration file to use",
+        ))
+    declared_arguments.append(
+        DeclareLaunchArgument("ar_model",
+                              default_value="ar4_mk3",
+                              choices=["ar4", "ar4_mk3"],
+                              description="Model of AR4"))
+
+    return LaunchDescription(declared_arguments + [OpaqueFunction(function=launch_setup)])
 
 #    return LaunchDescription([
 #        db_arg,
