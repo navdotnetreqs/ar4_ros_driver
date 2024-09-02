@@ -8,6 +8,7 @@ from launch.actions import DeclareLaunchArgument
 from launch.substitutions import LaunchConfiguration
 from launch.substitutions import Command, FindExecutable, PathJoinSubstitution
 
+# NB! much to do to get "include_track" here !
 
 def generate_launch_description():
     serial_port = LaunchConfiguration("serial_port")

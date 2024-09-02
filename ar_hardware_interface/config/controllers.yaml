@@ -20,6 +20,7 @@ joint_trajectory_controller:
       - joint_4
       - joint_5
       - joint_6
+      - linear_slider_joint
     command_interfaces:
       - position
     state_interfaces:
@@ -34,12 +35,8 @@ joint_trajectory_controller:
       joint_4: { trajectory: 0.2, goal: 0.02 }
       joint_5: { trajectory: 0.2, goal: 0.02 }
       joint_6: { trajectory: 0.2, goal: 0.02 }
+      linear_slider_joint: { trajectory: 0.2, goal: 0.02 }
 
 gripper_controller:
   ros__parameters:
     joint: gripper_jaw1_joint
-
-track_controller:
-  ros__parameters:
-    joint: linear_slider_joint
-

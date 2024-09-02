@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <robot xmlns:xacro="http://wiki.ros.org/xacro" name="$(arg name)">
-  <xacro:arg name="include_gripper" default="true" />
-  <xacro:arg name="include_track" default="true" />
+  <xacro:arg name="include_gripper" default="True" />
+  <xacro:arg name="include_track" default="True" />
 
   <xacro:if value="$(arg include_track)">
     <xacro:include filename="$(find ar_moveit_config)/srdf/ar_track_macro.srdf.xacro" />
