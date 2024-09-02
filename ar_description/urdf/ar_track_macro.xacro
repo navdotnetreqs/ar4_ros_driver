@@ -42,7 +42,7 @@
       <child link="linear_slider_link" />
       <origin xyz="0 0 ${robot_parameters['linear_track_height']}" rpy="0 0 0" />
       <axis xyz="1 0 0" />
-      <limit lower="${-0.1-robot_parameters['linear_track_length']/2+0.15/2}"
+      <limit lower="${-robot_parameters['linear_track_length']/2+0.15/2}"
         upper="${robot_parameters['linear_track_length']/2-0.15/2}" effort="100" velocity="0.5" />
     </joint>
 
