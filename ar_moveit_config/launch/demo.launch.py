@@ -29,11 +29,44 @@ def generate_launch_description():
     db_arg = DeclareLaunchArgument("db",
                                    default_value="False",
                                    description="Database flag")
-    ar_model_arg = DeclareLaunchArgument("ar_model",
-                                         default_value="ar4_mk3",
-                                         choices=["ar4", "ar4_mk3"],
-                                         description="Model of AR4")
     ar_model_config = LaunchConfiguration("ar_model")
+    include_gripper = LaunchConfiguration("include_gripper")
+    include_track = LaunchConfiguration("include_track")
+
+    declared_arguments = []
+    declared_arguments.append(db_arg)
+    declared_arguments.append(
+        DeclareLaunchArgument(
+            "use_sim_time",
+            default_value="False",
+            description="Make MoveIt use simulation time. This is needed "+\
+                "for trajectory planing in simulation.",
+        ))
+    declared_arguments.append(
+        DeclareLaunchArgument(
+            "include_gripper",
+            default_value="True",
+            description="Run the servo gripper",
+            choices=["True", "False"],
+        ))
+    declared_arguments.append(
+        DeclareLaunchArgument(
+            "include_track",
+            default_value="True",
+            description="Include a linear track",
+            choices=["True", "False"],
+        ))
+    declared_arguments.append(
+        DeclareLaunchArgument(
+            "rviz_config_file",
+            default_value="moveit.rviz",
+            description="Full path to the RViz configuration file to use",
+        ))
+    declared_arguments.append(
+        DeclareLaunchArgument("ar_model",
+                              default_value="ar4_mk3",
+                              choices=["ar4", "ar4_mk3"],
+                              description="Model of AR4"))
 
     robot_description_content = Command([
         PathJoinSubstitution([FindExecutable(name="xacro")]),
@@ -44,10 +77,16 @@ def generate_launch_description():
         " ",
         "ar_model:=",
         ar_model_config,
+        " ",
+        "include_gripper:=",
+        include_gripper,
+        " ",
+        "include_track:=",
+        include_track,
     ])
     robot_description = {"robot_description": robot_description_content}
 
-    # MoveIt Configuration
+   # MoveIt Configuration
     robot_description_semantic_content = Command([
         PathJoinSubstitution([FindExecutable(name="xacro")]),
         " ",
@@ -56,6 +95,12 @@ def generate_launch_description():
         " ",
         "name:=",
         ar_model_config,
+        " ",
+        "include_gripper:=",
+        include_gripper,
+        " ",
+        "include_track:=",
+        include_track,
     ])
     robot_description_semantic = {
         "robot_description_semantic": robot_description_semantic_content
@@ -239,16 +284,21 @@ def generate_launch_description():
         condition=IfCondition(db_config),
     )
 
-    return LaunchDescription([
-        db_arg,
-        ar_model_arg,
-        rviz_node,
-        # static_tf,
-        robot_state_publisher,
-        run_move_group_node,
-        ros2_control_node,
-        mongodb_server_node,
-        joint_state_broadcaster_spawner,
-        joint_controller_spawner,
-        gripper_controller_spawner,
-    ])
+    nodes_to_start = [rviz_node, robot_state_publisher, run_move_group_node, ros2_control_node, mongodb_server_node,joint_state_broadcaster_spawner, joint_controller_spawner, gripper_controller_spawner]
+    return LaunchDescription(declared_arguments + nodes_to_start)
+
+#    return LaunchDescription([
+#        db_arg,
+#        ar_model_arg,
+#        include_gripper,
+#        include_track,
+#        rviz_node,
+#        # static_tf,
+#        robot_state_publisher,
+#        run_move_group_node,
+#        ros2_control_node,
+#        mongodb_server_node,
+#        joint_state_broadcaster_spawner,
+#        joint_controller_spawner,
+#        gripper_controller_spawner,
+#    ])

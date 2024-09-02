@@ -19,7 +19,7 @@ def generate_launch_description():
         os.path.join(get_package_share_directory("ar_moveit_config"), "launch",
                      "ar_moveit.launch.py")
     ])
-    ar_moveit_args = {
+    ar_moveit_args = { # NB! include_track
         "include_gripper": "False",
         "rviz_config_file": "moveit_with_camera.rviz"
     }.items()

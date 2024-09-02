@@ -56,6 +56,7 @@ def load_yaml(package_name, file_name):
 def generate_launch_description():
     use_sim_time = LaunchConfiguration("use_sim_time")
     include_gripper = LaunchConfiguration("include_gripper")
+    include_track = LaunchConfiguration("include_track")
     rviz_config_file = LaunchConfiguration("rviz_config_file")
     ar_model_config = LaunchConfiguration("ar_model")
 
@@ -72,6 +73,13 @@ def generate_launch_description():
             "include_gripper",
             default_value="True",
             description="Run the servo gripper",
+            choices=["True", "False"],
+        ))
+    declared_arguments.append(
+        DeclareLaunchArgument(
+            "include_track",
+            default_value="True",
+            description="Include a linear track",
             choices=["True", "False"],
         ))
     declared_arguments.append(
@@ -97,6 +105,9 @@ def generate_launch_description():
         " ",
         "include_gripper:=",
         include_gripper,
+        " ",
+        "include_track:=",
+        include_track,
     ])
     robot_description = {"robot_description": robot_description_content}
 
@@ -112,6 +123,9 @@ def generate_launch_description():
         " ",
         "include_gripper:=",
         include_gripper,
+        " ",
+        "include_track:=",
+        include_track,
     ])
     robot_description_semantic = {
         "robot_description_semantic": robot_description_semantic_content
