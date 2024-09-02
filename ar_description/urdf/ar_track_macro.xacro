@@ -22,7 +22,7 @@
         <origin xyz="0 0 ${robot_parameters['linear_track_height'] / 2}" rpy="0 0 0" />
         <geometry>
           <box
-            size="${robot_parameters['linear_track_length']} 0.3 ${robot_parameters['linear_track_height']}" />
+            size="${robot_parameters['linear_track_length']} ${robot_parameters['linear_track_width']} ${robot_parameters['linear_track_height']}" />
         </geometry>
         <material name="">
           <color rgba="1 1 0 1" />
@@ -32,7 +32,7 @@
         <origin xyz="0 0 ${robot_parameters['linear_track_height'] / 2}" rpy="0 0 0" />
         <geometry>
           <box
-            size="${robot_parameters['linear_track_length']} 0.3 ${robot_parameters['linear_track_height']}" />
+            size="${robot_parameters['linear_track_length']} ${robot_parameters['linear_track_width']} ${robot_parameters['linear_track_height']}" />
         </geometry>
       </collision>
     </link>
@@ -42,8 +42,10 @@
       <child link="linear_slider_link" />
       <origin xyz="0 0 ${robot_parameters['linear_track_height']}" rpy="0 0 0" />
       <axis xyz="1 0 0" />
-      <limit lower="${-robot_parameters['linear_track_length']/2+0.15/2}"
-        upper="${robot_parameters['linear_track_length']/2-0.15/2}" effort="100" velocity="0.5" />
+      <limit
+        lower="${-(robot_parameters['linear_track_length']+robot_parameters['linear_track_width']) /2}"
+        upper="${(robot_parameters['linear_track_length']-robot_parameters['linear_track_width']) /2}"
+        effort="100" velocity="0.5" />
     </joint>
 
     <link name="linear_slider_link">
@@ -55,7 +57,8 @@
       <visual>
         <origin xyz="0 0 ${robot_parameters['linear_plate_height'] / 2}" rpy="0 0 0" />
         <geometry>
-          <box size="0.15 0.3 ${robot_parameters['linear_plate_height']}" />
+          <box
+            size="${robot_parameters['linear_plate_width']} ${robot_parameters['linear_plate_length']} ${robot_parameters['linear_plate_height']}" />
         </geometry>
         <material name="">
           <color rgba="1 1 0 1" />
@@ -64,7 +67,8 @@
       <collision>
         <origin xyz="0 0 ${robot_parameters['linear_plate_height'] / 2}" rpy="0 0 0" />
         <geometry>
-          <box size="0.15 0.3 ${robot_parameters['linear_plate_height']}" />
+          <box
+            size="${robot_parameters['linear_plate_width']} ${robot_parameters['linear_plate_length']} ${robot_parameters['linear_plate_height']}" />
         </geometry>
       </collision>
     </link>

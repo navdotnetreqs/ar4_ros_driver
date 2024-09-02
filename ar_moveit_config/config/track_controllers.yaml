@@ -13,6 +13,7 @@ joint_trajectory_controller:
     - joint_4
     - joint_5
     - joint_6
+    - linear_slider_joint
 
 gripper_controller:
   action_ns: gripper_cmd

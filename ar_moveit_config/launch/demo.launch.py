@@ -135,8 +135,15 @@ def generate_launch_description():
                                    "config/ompl_planning.yaml")
     ompl_planning_pipeline_config["move_group"].update(ompl_planning_yaml)
 
+
+    if not include_track:
+        controllers_file = "config/controllers.yaml"
+    else:
+        controllers_file = "config/track_controllers.yaml"
+
+
     # Trajectory Execution Configuration
-    controllers_yaml = load_yaml("ar_moveit_config", "config/controllers.yaml")
+    controllers_yaml = load_yaml("ar_moveit_config", controllers_file)
 
     moveit_controllers = {
         "moveit_simple_controller_manager":
@@ -217,11 +224,16 @@ def generate_launch_description():
         parameters=[robot_description],
     )
 
+    if not include_track:
+        controllers_file = "controllers.yaml"
+    else:
+        controllers_file = "track_controllers.yaml"
+
     # ros2_control using FakeSystem as hardware
     ros2_controllers_path = os.path.join(
         get_package_share_directory("ar_hardware_interface"),
         "config",
-        "controllers.yaml",
+        controllers_file,
     )
     ros2_control_node = Node(
         package="controller_manager",
