@@ -42,7 +42,7 @@ def generate_launch_description():
     robot_description = {"robot_description": robot_description_content}
 
     joint_controllers_cfg = PathJoinSubstitution([
-        FindPackageShare("ar_hardware_interface"), "config", "controllers.yaml"
+        FindPackageShare("ar_hardware_interface"), "config", "controllers.yaml"  # NB! different file if track enabled ?
     ])
 
     update_rate_config_file = PathJoinSubstitution([

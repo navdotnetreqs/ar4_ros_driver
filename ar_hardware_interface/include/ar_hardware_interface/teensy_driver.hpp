@@ -44,6 +44,11 @@ class TeensyDriver {
   void checkInit(std::string msg);
   void updateEncoderCalibrations(std::string msg);
   void updateJointPositions(std::string msg);
+
+  template <typename T>
+  void parseValuesToVector(const std::string msg, std::vector<T>& values);
+  void updateEncoderCalibrations2(std::string msg);
+  void updateJointPositions2(std::string msg);
 };
 
 }  // namespace ar_hardware_interface

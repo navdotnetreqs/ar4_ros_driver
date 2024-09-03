@@ -9,6 +9,7 @@ namespace ar_hardware_interface {
 
 void TeensyDriver::init(std::string port, int baudrate, int num_joints) {
   // @TODO read version from config
+  // @TODO ISR stop button
   version_ = FW_VERSION;
 
   // establish connection with teensy board
@@ -176,6 +177,7 @@ void TeensyDriver::checkInit(std::string msg) {
 }
 
 void TeensyDriver::updateEncoderCalibrations(std::string msg) {
+  // NB! Joint 7 for linear_track
   size_t idx1 = msg.find("A", 2) + 1;
   size_t idx2 = msg.find("B", 2) + 1;
   size_t idx3 = msg.find("C", 2) + 1;
@@ -194,6 +196,7 @@ void TeensyDriver::updateEncoderCalibrations(std::string msg) {
 }
 
 void TeensyDriver::updateJointPositions(std::string msg) {
+  // NB! Joint 7 for linear_track
   size_t idx1 = msg.find("A", 2) + 1;
   size_t idx2 = msg.find("B", 2) + 1;
   size_t idx3 = msg.find("C", 2) + 1;
@@ -206,6 +209,40 @@ void TeensyDriver::updateJointPositions(std::string msg) {
   joint_positions_deg_[3] = std::stod(msg.substr(idx4, idx5 - idx4));
   joint_positions_deg_[4] = std::stod(msg.substr(idx5, idx6 - idx5));
   joint_positions_deg_[5] = std::stod(msg.substr(idx6));
+}
+
+// NB! Test this through, handle more joints
+void TeensyDriver::updateJointPositions2(const std::string msg) {
+    parseValuesToVector(msg, joint_positions_deg_);
+}
+
+void TeensyDriver::updateEncoderCalibrations2(const std::string msg) {
+    parseValuesToVector(msg, enc_calibrations_);
+}
+
+template <typename T>
+void TeensyDriver::parseValuesToVector(const std::string msg, std::vector<T>& values) {
+    values.clear();
+    size_t prevIdx = msg.find('A', 2) + 1;
+
+    for (size_t i = 1; ; ++i) {
+        char currentIdentifier = 'A' + i;
+        size_t currentIdx = msg.find(currentIdentifier, 2);
+        if (currentIdx == std::string::npos) {
+            if constexpr (std::is_same<T, int>::value) {
+                values.push_back(std::stoi(msg.substr(prevIdx)));
+            } else if constexpr (std::is_same<T, double>::value) {
+                values.push_back(std::stod(msg.substr(prevIdx)));
+            }
+            break;
+        }
+        if constexpr (std::is_same<T, int>::value) {
+            values.push_back(std::stoi(msg.substr(prevIdx, currentIdx - prevIdx)));
+        } else if constexpr (std::is_same<T, double>::value) {
+            values.push_back(std::stod(msg.substr(prevIdx, currentIdx - prevIdx)));
+        }
+        prevIdx = currentIdx + 1;
+    }
 }
 
 }  // namespace ar_hardware_interface

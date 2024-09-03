@@ -52,7 +52,7 @@ def load_yaml(package_name, file_name):
     with open(absolute_file_path, "r", encoding="utf-8") as file:
         return yaml.safe_load(file)
 
-
+ # NB! include-track not working here, must do what we did for demo launch
 def generate_launch_description():
     use_sim_time = LaunchConfiguration("use_sim_time")
     include_gripper = LaunchConfiguration("include_gripper")

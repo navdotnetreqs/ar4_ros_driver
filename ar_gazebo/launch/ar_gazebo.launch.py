@@ -44,7 +44,7 @@ def generate_launch_description():
                                          description="Model of AR4")
     ar_model_config = LaunchConfiguration("ar_model")
 
-    initial_joint_controllers = PathJoinSubstitution([
+    initial_joint_controllers = PathJoinSubstitution([ # NB! different file if track enabled ?
         FindPackageShare("ar_hardware_interface"), "config", "controllers.yaml"
     ])
 
