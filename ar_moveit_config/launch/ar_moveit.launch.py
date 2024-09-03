@@ -37,7 +37,7 @@ from launch_ros.actions import Node
 from launch_ros.substitutions import FindPackageShare
 
 from launch import LaunchDescription
-from launch.actions import DeclareLaunchArgument
+from launch.actions import DeclareLaunchArgument, OpaqueFunction
 from launch.substitutions import (
     Command,
     FindExecutable,
@@ -52,47 +52,14 @@ def load_yaml(package_name, file_name):
     with open(absolute_file_path, "r", encoding="utf-8") as file:
         return yaml.safe_load(file)
 
- # NB! include-track not working here, must do what we did for demo launch
-def generate_launch_description():
+# I really couldn't find another way than this to set the yaml file to be used based on launch-config-argument..
+def launch_setup(context, *args, **kwargs):
     use_sim_time = LaunchConfiguration("use_sim_time")
     include_gripper = LaunchConfiguration("include_gripper")
     include_track = LaunchConfiguration("include_track")
     rviz_config_file = LaunchConfiguration("rviz_config_file")
     ar_model_config = LaunchConfiguration("ar_model")
 
-    declared_arguments = []
-    declared_arguments.append(
-        DeclareLaunchArgument(
-            "use_sim_time",
-            default_value="False",
-            description="Make MoveIt use simulation time. This is needed "+\
-                "for trajectory planing in simulation.",
-        ))
-    declared_arguments.append(
-        DeclareLaunchArgument(
-            "include_gripper",
-            default_value="True",
-            description="Run the servo gripper",
-            choices=["True", "False"],
-        ))
-    declared_arguments.append(
-        DeclareLaunchArgument(
-            "include_track",
-            default_value="True",
-            description="Include a linear track",
-            choices=["True", "False"],
-        ))
-    declared_arguments.append(
-        DeclareLaunchArgument(
-            "rviz_config_file",
-            default_value="moveit.rviz",
-            description="Full path to the RViz configuration file to use",
-        ))
-    declared_arguments.append(
-        DeclareLaunchArgument("ar_model",
-                              default_value="ar4_mk3",
-                              choices=["ar4", "ar4_mk3"],
-                              description="Model of AR4"))
 
     robot_description_content = Command([
         PathJoinSubstitution([FindExecutable(name="xacro")]),
@@ -161,10 +128,11 @@ def generate_launch_description():
     ompl_planning_pipeline_config["move_group"].update(ompl_planning_yaml)
 
 
-    if not include_track:
-        controllers_file = "config/controllers.yaml"
-    else:
+    if include_track.perform(context) == 'True':
         controllers_file = "config/track_controllers.yaml"
+    else:
+        controllers_file = "config/controllers.yaml"
+
 
     # Trajectory Execution Configuration
     controllers_yaml = load_yaml("ar_moveit_config", controllers_file)
@@ -232,4 +200,41 @@ def generate_launch_description():
     )
 
     nodes_to_start = [move_group_node, rviz_node]
-    return LaunchDescription(declared_arguments + nodes_to_start)
+    return nodes_to_start
+
+def generate_launch_description():
+    declared_arguments = []
+    declared_arguments.append(
+        DeclareLaunchArgument(
+            "use_sim_time",
+            default_value="False",
+            description="Make MoveIt use simulation time. This is needed "+\
+                "for trajectory planing in simulation.",
+        ))
+    declared_arguments.append(
+        DeclareLaunchArgument(
+            "include_gripper",
+            default_value="True",
+            description="Run the servo gripper",
+            choices=["True", "False"],
+        ))
+    declared_arguments.append(
+        DeclareLaunchArgument(
+            "include_track",
+            default_value="True",
+            description="Include a linear track",
+            choices=["True", "False"],
+        ))
+    declared_arguments.append(
+        DeclareLaunchArgument(
+            "rviz_config_file",
+            default_value="moveit.rviz",
+            description="Full path to the RViz configuration file to use",
+        ))
+    declared_arguments.append(
+        DeclareLaunchArgument("ar_model",
+                              default_value="ar4_mk3",
+                              choices=["ar4", "ar4_mk3"],
+                              description="Model of AR4"))
+
+    return LaunchDescription(declared_arguments + [OpaqueFunction(function=launch_setup)])

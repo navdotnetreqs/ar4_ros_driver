@@ -29,23 +29,27 @@
 # Author: Denis Stogl
 
 from launch import LaunchDescription
-from launch.actions import DeclareLaunchArgument
+from launch.actions import DeclareLaunchArgument, OpaqueFunction
 from launch.actions import IncludeLaunchDescription
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import Command, FindExecutable, PathJoinSubstitution, LaunchConfiguration
 from launch_ros.actions import Node
 from launch_ros.substitutions import FindPackageShare
 
-
-def generate_launch_description():
-    ar_model_arg = DeclareLaunchArgument("ar_model",
-                                         default_value="ar4_mk3",
-                                         choices=["ar4", "ar4_mk3"],
-                                         description="Model of AR4")
+# I really couldn't find another way than this to set the yaml file to be used based on launch-config-argument..
+def launch_setup(context, *args, **kwargs):
     ar_model_config = LaunchConfiguration("ar_model")
+    include_gripper = LaunchConfiguration("include_gripper")
+    include_track = LaunchConfiguration("include_track")
 
-    initial_joint_controllers = PathJoinSubstitution([ # NB! different file if track enabled ?
-        FindPackageShare("ar_hardware_interface"), "config", "controllers.yaml"
+
+    if include_track.perform(context) == 'True':
+        controllers_file = "track_controllers.yaml"
+    else:
+        controllers_file = "controllers.yaml"
+
+    initial_joint_controllers = PathJoinSubstitution([
+        FindPackageShare("ar_hardware_interface"), "config", controllers_file
     ])
 
     robot_description_content = Command([
@@ -57,6 +61,12 @@ def generate_launch_description():
         " ",
         "ar_model:=",
         ar_model_config,
+        " ",
+        "include_gripper:=",
+        include_gripper,
+        " ",
+        "include_track:=",
+        include_track,
         " ",
         "simulation_controllers:=",
         initial_joint_controllers,
@@ -79,6 +89,9 @@ def generate_launch_description():
             "joint_state_broadcaster", "-c", "/controller_manager",
             "--controller-manager-timeout", "60"
         ],
+        parameters=[{
+            "use_sim_time": True
+        }],
     )
 
     # There may be other controllers of the joints, but this is the initially-started one
@@ -89,6 +102,9 @@ def generate_launch_description():
             "joint_trajectory_controller", "-c", "/controller_manager",
             "--controller-manager-timeout", "60"
         ],
+        parameters=[{
+            "use_sim_time": True
+        }],
     )
 
     gripper_joint_controller_spawner_started = Node(
@@ -98,6 +114,9 @@ def generate_launch_description():
             "gripper_controller", "-c", "/controller_manager",
             "--controller-manager-timeout", "60"
         ],
+        parameters=[{
+            "use_sim_time": True
+        }],
     )
 
 
@@ -116,14 +135,29 @@ def generate_launch_description():
             "-entity", "ar", "-topic", "robot_description", "-timeout", "60"
         ],
         output="screen",
+        parameters=[{
+            "use_sim_time": True
+        }],
     )
+    nodes_to_start = [robot_state_publisher_node,joint_state_broadcaster_spawner,initial_joint_controller_spawner_started,gripper_joint_controller_spawner_started,gazebo,gazebo_spawn_robot]
+    return nodes_to_start
 
-    return LaunchDescription([
-        ar_model_arg,
-        robot_state_publisher_node,
-        joint_state_broadcaster_spawner,
-        initial_joint_controller_spawner_started,
-        gripper_joint_controller_spawner_started,
-        gazebo,
-        gazebo_spawn_robot,
-    ])
+def generate_launch_description():
+    declared_arguments = []
+    declared_arguments.append(DeclareLaunchArgument("ar_model",
+                                         default_value="ar4_mk3",
+                                         choices=["ar4", "ar4_mk3"],
+                                         description="Model of AR4"))
+    declared_arguments.append(DeclareLaunchArgument(
+                                         "include_gripper",
+                                         default_value="True",
+                                         description="Run the servo gripper",
+                                         choices=["True", "False"]))
+    declared_arguments.append(DeclareLaunchArgument(
+                                        "include_track",
+                                        default_value="True",
+                                        description="Include a linear track",
+                                        choices=["True", "False"]))
+    
+
+    return LaunchDescription(declared_arguments+[OpaqueFunction(function=launch_setup)])

@@ -299,19 +299,3 @@ def generate_launch_description():
                               description="Model of AR4"))
 
     return LaunchDescription(declared_arguments + [OpaqueFunction(function=launch_setup)])
-
-#    return LaunchDescription([
-#        db_arg,
-#        ar_model_arg,
-#        include_gripper,
-#        include_track,
-#        rviz_node,
-#        # static_tf,
-#        robot_state_publisher,
-#        run_move_group_node,
-#        ros2_control_node,
-#        mongodb_server_node,
-#        joint_state_broadcaster_spawner,
-#        joint_controller_spawner,
-#        gripper_controller_spawner,
-#    ])
