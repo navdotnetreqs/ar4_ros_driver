@@ -8,12 +8,11 @@ from launch.actions import DeclareLaunchArgument
 from launch.substitutions import LaunchConfiguration
 from launch.substitutions import Command, FindExecutable, PathJoinSubstitution
 
-# NB! much to do to get "include_track" here !
-
-def generate_launch_description():
+def launch_setup(context, *args, **kwargs):
     serial_port = LaunchConfiguration("serial_port")
     calibrate = LaunchConfiguration("calibrate")
     include_gripper = LaunchConfiguration("include_gripper")
+    include_track = LaunchConfiguration("include_track")
     arduino_serial_port = LaunchConfiguration("arduino_serial_port")
     ar_model_config = LaunchConfiguration("ar_model")
 
@@ -36,13 +35,22 @@ def generate_launch_description():
         "include_gripper:=",
         include_gripper,
         " ",
+        "include_track:=",
+        include_track,
+        " ",
         "arduino_serial_port:=",
         arduino_serial_port,
     ])
     robot_description = {"robot_description": robot_description_content}
 
+    # Controllers file depends on whether track is enabled
+    if include_track.perform(context) == 'True':
+        controllers_file = "track_controllers.yaml"
+    else:
+        controllers_file = "controllers.yaml"
+
     joint_controllers_cfg = PathJoinSubstitution([
-        FindPackageShare("ar_hardware_interface"), "config", "controllers.yaml"  # NB! different file if track enabled ?
+        FindPackageShare("ar_hardware_interface"), "config", controllers_file
     ])
 
     update_rate_config_file = PathJoinSubstitution([
@@ -106,41 +114,48 @@ def generate_launch_description():
         ],
     )
 
-    ld = LaunchDescription()
-    ld.add_action(
+    nodes_to_start = [controller_manager_node,spawn_joint_controller,gripper_controller_spawner,robot_state_publisher_node,joint_state_broadcaster]
+    return nodes_to_start
+
+
+def generate_launch_description():
+    declared_arguments = []
+    declared_arguments.append(
         DeclareLaunchArgument(
             "serial_port",
             default_value="/dev/ttyACM0",
             description="Serial port to connect to the robot",
         ))
-    ld.add_action(
+    declared_arguments.append(
         DeclareLaunchArgument(
             "calibrate",
             default_value="True",
             description="Calibrate the robot on startup",
             choices=["True", "False"],
         ))
-    ld.add_action(
+    declared_arguments.append(
         DeclareLaunchArgument(
             "include_gripper",
             default_value="True",
             description="Run the servo gripper",
             choices=["True", "False"],
         ))
-    ld.add_action(
+    declared_arguments.append(
+        DeclareLaunchArgument(
+            "include_track",
+            default_value="True",
+            description="Include a linear track",
+            choices=["True", "False"],
+        ))
+    declared_arguments.append(
         DeclareLaunchArgument(
             "arduino_serial_port",
             default_value="/dev/ttyUSB0",
             description="Serial port of the Arduino nano for the servo gripper",
         ))
-    ld.add_action(
+    declared_arguments.append(
         DeclareLaunchArgument("ar_model",
                               default_value="ar4_mk3",
                               choices=["ar4", "ar4_mk3"],
                               description="Model of AR4"))
-    ld.add_action(controller_manager_node)
-    ld.add_action(spawn_joint_controller)
-    ld.add_action(gripper_controller_spawner)
-    ld.add_action(robot_state_publisher_node)
-    ld.add_action(joint_state_broadcaster)
-    return ld
+    return LaunchDescription(declared_arguments + [OpaqueFunction(function=launch_setup)])

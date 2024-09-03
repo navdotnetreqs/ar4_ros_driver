@@ -1,2 +1,0 @@
-If you want to move the robot from GUI and you have the track, you must plan&execute using ar_track_manipulator.
-However, if you don't want the track to move, set the pose using ar_manipulator, then change to ar_track manipulator before plan&execute.

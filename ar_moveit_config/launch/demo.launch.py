@@ -93,7 +93,7 @@ def launch_setup(context, *args, **kwargs):
                                    "config/ompl_planning.yaml")
     ompl_planning_pipeline_config["move_group"].update(ompl_planning_yaml)
 
-
+    # Controllers file depends on whether track is enabled
     if include_track.perform(context) == 'True':
         controllers_file = "config/track_controllers.yaml"
     else:
@@ -181,6 +181,7 @@ def launch_setup(context, *args, **kwargs):
         parameters=[robot_description],
     )
 
+    # Controllers file depends on whether track is enabled
     if include_track.perform(context) == 'True':
         controllers_file = "track_controllers.yaml"
     else:

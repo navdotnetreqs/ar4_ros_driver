@@ -25,7 +25,8 @@ joint_trajectory_controller:
       - position
     state_interfaces:
       - position
-    allow_partial_joints_goal: false
+    # this way you can use ar_manipulator even if track is enabled
+    allow_partial_joints_goal: true
     constraints:
       stopped_velocity_tolerance: 0.02
       goal_time: 0.0

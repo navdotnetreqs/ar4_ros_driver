@@ -42,7 +42,7 @@ def launch_setup(context, *args, **kwargs):
     include_gripper = LaunchConfiguration("include_gripper")
     include_track = LaunchConfiguration("include_track")
 
-
+    # Controllers file depends on whether track is enabled
     if include_track.perform(context) == 'True':
         controllers_file = "track_controllers.yaml"
     else:
