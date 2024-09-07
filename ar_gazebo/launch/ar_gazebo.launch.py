@@ -132,7 +132,7 @@ def launch_setup(context, *args, **kwargs):
         executable="spawn_entity.py",
         name="spawn_ar",
         arguments=[
-            "-entity", "ar", "-topic", "robot_description", "-timeout", "60"
+            "-entity", "ar", "-topic", "robot_description", "-timeout", "60", "-y", "0", "-x" "-0", "-z", "0.965"
         ],
         output="screen",
         parameters=[{

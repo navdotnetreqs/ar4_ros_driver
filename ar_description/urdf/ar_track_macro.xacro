@@ -6,6 +6,14 @@
 
     <xacro:property name="robot_parameters" value="${xacro.load_yaml(robot_parameters_file)}" />
 
+    <xacro:property name="plate_width" value="${robot_parameters['linear_plate_width']}" />
+    <xacro:property name="plate_length" value="${robot_parameters['linear_plate_length']}" />
+    <xacro:property name="plate_height" value="${robot_parameters['linear_plate_height']}" />
+    <xacro:property name="track_width" value="${robot_parameters['linear_track_width']}" />
+    <xacro:property name="track_length" value="${robot_parameters['linear_track_length']}" />
+    <xacro:property name="track_height" value="${robot_parameters['linear_track_height']}" />
+
+
     <joint name="linear_base_joint" type="fixed">
       <xacro:insert_block name="origin" />
       <parent link="${parent}" />
@@ -19,20 +27,34 @@
         <inertia ixx="1e-3" ixy="0.0" ixz="0.0" iyy="1e-3" iyz="0.0" izz="1e-3" />
       </inertial>
       <visual>
-        <origin xyz="0 0 ${robot_parameters['linear_track_height'] / 2}" rpy="0 0 0" />
+        <origin
+          xyz="0 ${-track_width/2+0.03/2} ${track_height / 2}"
+          rpy="0 0 0" />
         <geometry>
-          <box
-            size="${robot_parameters['linear_track_length']} ${robot_parameters['linear_track_width']} ${robot_parameters['linear_track_height']}" />
+          <mesh
+            filename="file://$(find ar_description)/meshes/${robot_parameters['mesh_dir']}/track.stl" />
+        </geometry>
+        <material name="">
+          <color rgba="1 1 0 1" />
+        </material>
+      </visual>
+      <visual>
+        <origin
+          xyz="0 ${track_width/2-0.03/2} ${track_height / 2}"
+          rpy="0 0 0" />
+        <geometry>
+          <mesh
+            filename="file://$(find ar_description)/meshes/${robot_parameters['mesh_dir']}/track.stl" />
         </geometry>
         <material name="">
           <color rgba="1 1 0 1" />
         </material>
       </visual>
       <collision>
-        <origin xyz="0 0 ${robot_parameters['linear_track_height'] / 2}" rpy="0 0 0" />
+        <origin xyz="0 0 ${track_height / 2}" rpy="0 0 0" />
         <geometry>
           <box
-            size="${robot_parameters['linear_track_length']} ${robot_parameters['linear_track_width']} ${robot_parameters['linear_track_height']}" />
+            size="${track_length} ${track_width} ${track_height}" />
         </geometry>
       </collision>
     </link>
@@ -40,11 +62,11 @@
     <joint name="linear_slider_joint" type="prismatic">
       <parent link="linear_base_link" />
       <child link="linear_slider_link" />
-      <origin xyz="0 0 ${robot_parameters['linear_track_height']}" rpy="0 0 0" />
+      <origin xyz="0 0 ${track_height}" rpy="0 0 0" />
       <axis xyz="1 0 0" />
       <limit
-        lower="${-(robot_parameters['linear_track_length']+robot_parameters['linear_track_width']) /2}"
-        upper="${(robot_parameters['linear_track_length']-robot_parameters['linear_track_width']) /2}"
+        lower="${(-track_length+plate_width) /2}"
+        upper="${(track_length-plate_width) /2}"
         effort="100" velocity="0.5" />
     </joint>
 
@@ -55,20 +77,33 @@
         <inertia ixx="1e-3" ixy="0.0" ixz="0.0" iyy="1e-3" iyz="0.0" izz="1e-3" />
       </inertial>
       <visual>
-        <origin xyz="0 0 ${robot_parameters['linear_plate_height'] / 2}" rpy="0 0 0" />
+        <origin xyz="0 0 ${plate_height / 2}" rpy="0 0 0" />
         <geometry>
           <box
-            size="${robot_parameters['linear_plate_width']} ${robot_parameters['linear_plate_length']} ${robot_parameters['linear_plate_height']}" />
+            size="${plate_width} ${plate_length} ${plate_height}" />
         </geometry>
         <material name="">
           <color rgba="1 1 0 1" />
         </material>
       </visual>
+      <visual>
+        <origin
+          xyz="${plate_width/2} ${plate_length/2} ${-plate_height / 2}"
+          rpy="0 0 0" />
+        <geometry>
+          <mesh
+            filename="file://$(find ar_description)/meshes/${robot_parameters['mesh_dir']}/track_bearing.stl" />
+        </geometry>
+        <material name="">
+          <color rgba="1 1 0 1" />
+        </material>
+      </visual>
+
       <collision>
-        <origin xyz="0 0 ${robot_parameters['linear_plate_height'] / 2}" rpy="0 0 0" />
+        <origin xyz="0 0 ${plate_height / 2}" rpy="0 0 0" />
         <geometry>
           <box
-            size="${robot_parameters['linear_plate_width']} ${robot_parameters['linear_plate_length']} ${robot_parameters['linear_plate_height']}" />
+            size="${plate_width} ${plate_length} ${plate_height}" />
         </geometry>
       </collision>
     </link>
