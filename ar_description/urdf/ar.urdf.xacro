@@ -36,4 +36,13 @@
     <xacro:include filename="$(find ar_description)/urdf/ar_gripper_macro.xacro" />
     <xacro:ar_gripper parent="ee_link" />
   </xacro:if>
+
+  <xacro:include filename="$(find ar_description)/urdf/ar_camera_macro.xacro" />
+  <xacro:ar_camera
+    parent="base_link"
+    robot_parameters_file="${robot_parameters_file}">
+    <origin xyz="0 0 0" rpy="0 0 0" />
+  </xacro:ar_camera>
+
+
 </robot>

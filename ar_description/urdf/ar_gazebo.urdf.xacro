@@ -40,6 +40,13 @@
     <xacro:ar_gripper parent="ee_link" />
   </xacro:if>
 
+  <xacro:include filename="$(find ar_description)/urdf/ar_camera_macro.xacro" />
+  <xacro:ar_camera
+    parent="base_link"
+    robot_parameters_file="${robot_parameters_file}">
+    <origin xyz="0 0 0" rpy="0 0 0" />
+  </xacro:ar_camera>
+
   <xacro:ar_ros2_control
     name="ARGazeboSystem"
     plugin_name="gazebo_ros2_control/GazeboSystem"
@@ -60,4 +67,5 @@
       <parameters>$(arg simulation_controllers)</parameters>
     </plugin>
   </gazebo>
+
 </robot>

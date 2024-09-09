@@ -1,0 +1,1 @@
+colcon build --symlink-install --packages-skip ros2_aruco easy_handeye2 ar_hand_eye ros2_aruco_interfaces easy_handeye2_msgs

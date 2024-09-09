@@ -6,15 +6,40 @@
 
     <xacro:property name="robot_parameters" value="${xacro.load_yaml(robot_parameters_file)}" />
 
-    <xacro:property name="plate_width" value="${robot_parameters['linear_plate_width']}" />
-    <xacro:property name="plate_length" value="${robot_parameters['linear_plate_length']}" />
-    <xacro:property name="plate_height" value="${robot_parameters['linear_plate_height']}" />
-    <xacro:property name="track_width" value="${robot_parameters['linear_track_width']}" />
-    <xacro:property name="track_length" value="${robot_parameters['linear_track_length']}" />
-    <xacro:property name="track_height" value="${robot_parameters['linear_track_height']}" />
+    <xacro:property
+      name="plate_width" value="${robot_parameters['linear_plate_width']}" />
+    <xacro:property
+      name="plate_length" value="${robot_parameters['linear_plate_length']}" />
+    <xacro:property
+      name="plate_height" value="${robot_parameters['linear_plate_height']}" />
+    <xacro:property
+      name="track_width" value="${robot_parameters['linear_track_width']}" />
+    <xacro:property
+      name="track_length" value="${robot_parameters['linear_track_length']}" />
+    <xacro:property
+      name="track_height" value="${robot_parameters['linear_track_height']}" />
+    <xacro:property
+      name="bearing_spacer" value="${robot_parameters['linear_bearing_spacer']}" />
+
+    <xacro:macro
+      name="block_corner" params="x y">
+      <visual>
+        <origin
+          xyz="${x*(plate_width-bearing_spacer)/2} ${y*(plate_length-bearing_spacer)/2} ${-plate_height / 2}"
+          rpy="0 0 0" />
+        <geometry>
+          <mesh
+            filename="file://$(find ar_description)/meshes/${robot_parameters['mesh_dir']}/track_bearing.stl" />
+        </geometry>
+      </visual>
+      <material name="">
+        <color rgba="1 1 0 1" />
+      </material>
+    </xacro:macro>
 
 
-    <joint name="linear_base_joint" type="fixed">
+    <joint name="linear_base_joint"
+      type="fixed">
       <xacro:insert_block name="origin" />
       <parent link="${parent}" />
       <child link="linear_base_link" />
@@ -28,7 +53,7 @@
       </inertial>
       <visual>
         <origin
-          xyz="0 ${-track_width/2+0.03/2} ${track_height / 2}"
+          xyz="0 ${(-track_width+bearing_spacer)/2} ${track_height / 2}"
           rpy="0 0 0" />
         <geometry>
           <mesh
@@ -40,7 +65,7 @@
       </visual>
       <visual>
         <origin
-          xyz="0 ${track_width/2-0.03/2} ${track_height / 2}"
+          xyz="0 ${(track_width-bearing_spacer)/2} ${track_height / 2}"
           rpy="0 0 0" />
         <geometry>
           <mesh
@@ -59,7 +84,11 @@
       </collision>
     </link>
 
-    <joint name="linear_slider_joint" type="prismatic">
+    <gazebo reference="linear_slider_link">
+      <material>Gazebo/Grey</material>
+    </gazebo>
+    <joint
+      name="linear_slider_joint" type="prismatic">
       <parent link="linear_base_link" />
       <child link="linear_slider_link" />
       <origin xyz="0 0 ${track_height}" rpy="0 0 0" />
@@ -86,18 +115,11 @@
           <color rgba="1 1 0 1" />
         </material>
       </visual>
-      <visual>
-        <origin
-          xyz="${plate_width/2} ${plate_length/2} ${-plate_height / 2}"
-          rpy="0 0 0" />
-        <geometry>
-          <mesh
-            filename="file://$(find ar_description)/meshes/${robot_parameters['mesh_dir']}/track_bearing.stl" />
-        </geometry>
-        <material name="">
-          <color rgba="1 1 0 1" />
-        </material>
-      </visual>
+
+      <xacro:block_corner x="1" y="1" />
+      <xacro:block_corner x="1" y="-1" />
+      <xacro:block_corner x="-1" y="1" />
+      <xacro:block_corner x="-1" y="-1" />
 
       <collision>
         <origin xyz="0 0 ${plate_height / 2}" rpy="0 0 0" />
