@@ -2,6 +2,7 @@
 <robot xmlns:xacro="http://wiki.ros.org/xacro" name="$(arg ar_model)">
   <xacro:arg name="include_gripper" default="True" />
   <xacro:arg name="include_track" default="True" />
+  <xacro:arg name="include_camera" default="True" />
 
   <xacro:include filename="$(find ar_description)/urdf/ar_macro.xacro" />
 
@@ -9,14 +10,14 @@
     value="$(find ar_description)/config/$(arg ar_model).yaml" />
   <xacro:property name="robot_parameters" value="${xacro.load_yaml(robot_parameters_file)}" />
 
-  <link name="world" />
-  <xacro:property name="ar_robot_parent" value="world" />
+  <link name="aworld" /> <!-- not locked to WORLD, so then we can link camera to this .. -->
+  <xacro:property name="ar_robot_parent" value="aworld" />
   <xacro:property name="ar_robot_origin_xyz" value="0 0 0" />
 
   <xacro:if value="$(arg include_track)">
     <xacro:include filename="$(find ar_description)/urdf/ar_track_macro.xacro" />
     <xacro:ar_track
-      parent="world"
+      parent="${ar_robot_parent}"
       robot_parameters_file="${robot_parameters_file}">
       <origin xyz="0 0 0" rpy="0 0 0" />
     </xacro:ar_track>
@@ -37,12 +38,14 @@
     <xacro:ar_gripper parent="ee_link" />
   </xacro:if>
 
-  <xacro:include filename="$(find ar_description)/urdf/ar_camera_macro.xacro" />
-  <xacro:ar_camera
-    parent="base_link"
-    robot_parameters_file="${robot_parameters_file}">
-    <origin xyz="0 0 0" rpy="0 0 0" />
-  </xacro:ar_camera>
+  <xacro:if value="$(arg include_track)">
+    <xacro:include filename="$(find ar_description)/urdf/ar_camera_macro.xacro" />
+    <xacro:ar_camera
+      parent="${ar_robot_parent}"
+      robot_parameters_file="${robot_parameters_file}">
+      <origin xyz="0 -0.75 1" rpy="0 ${pi/2} ${pi/2}" />
+    </xacro:ar_camera>
+  </xacro:if>
 
 
 </robot>

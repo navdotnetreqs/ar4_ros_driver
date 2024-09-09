@@ -41,6 +41,7 @@ def launch_setup(context, *args, **kwargs):
     ar_model_config = LaunchConfiguration("ar_model")
     include_gripper = LaunchConfiguration("include_gripper")
     include_track = LaunchConfiguration("include_track")
+    include_camera = LaunchConfiguration("include_camera")
 
     # Controllers file depends on whether track is enabled
     if include_track.perform(context) == 'True':
@@ -67,6 +68,9 @@ def launch_setup(context, *args, **kwargs):
         " ",
         "include_track:=",
         include_track,
+        " ",
+        "include_camera:=",
+        include_camera,
         " ",
         "simulation_controllers:=",
         initial_joint_controllers,
@@ -158,6 +162,10 @@ def generate_launch_description():
                                         default_value="True",
                                         description="Include a linear track",
                                         choices=["True", "False"]))
-    
+    declared_arguments.append(DeclareLaunchArgument(
+                                        "include_camera",
+                                        default_value="True",
+                                        description="Include a camera",
+                                        choices=["True", "False"]))
 
     return LaunchDescription(declared_arguments+[OpaqueFunction(function=launch_setup)])

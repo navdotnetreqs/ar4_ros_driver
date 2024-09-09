@@ -25,6 +25,7 @@ def launch_setup(context, *args, **kwargs):
     ar_model_config = LaunchConfiguration("ar_model")
     include_gripper = LaunchConfiguration("include_gripper")
     include_track = LaunchConfiguration("include_track")
+# NB! missing include statements for camera in a lot of places 
 
     robot_description_content = Command([
     PathJoinSubstitution([FindExecutable(name="xacro")]),
