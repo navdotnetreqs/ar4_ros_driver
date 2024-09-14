@@ -5,35 +5,38 @@
 #include <Encoder.h>
 #include <avr/pgmspace.h>
 #include <math.h>
+#include <stdio.h>
+#include <string>
 
 // Firmware version
-const char* VERSION = "0.0.1";
+const char* VERSION = "0.0.2";
 
 ///////////////////////////////////////////////////////////////////////////////
 // Physical Params
 ///////////////////////////////////////////////////////////////////////////////
 
-const int STEP_PINS[] = {0, 2, 4, 6, 8, 10};
-const int DIR_PINS[] = {1, 3, 5, 7, 9, 11};
-const int LIMIT_PINS[] = {26, 27, 28, 29, 30, 31};
+const int STEP_PINS[] = {0, 2, 4, 6, 8, 10, 12, 32, 34};
+const int DIR_PINS[] = {1, 3, 5, 7, 9, 11, 13, 33, 35};
+const int LIMIT_PINS[] = {26, 27, 28, 29, 30, 31, 36, 37, 38};
 
 const float MOTOR_STEPS_PER_DEG[] = {44.44444444, 55.55555556, 55.55555556,
-                                     49.77777777, 21.86024888, 22.22222222};
+                                     49.77777777, 21.86024888, 22.22222222,
+                                     14.2857, 14.2857, 14.2857};
 const int MOTOR_STEPS_PER_REV[] = {400, 400, 400, 400, 800, 400};
 
 // set encoder pins
 Encoder encPos[6] = {Encoder(14, 15), Encoder(17, 16), Encoder(19, 18),
                      Encoder(20, 21), Encoder(23, 22), Encoder(24, 25)};
 // +1 if encoder direction matches motor direction, -1 otherwise
-int ENC_DIR[] = {-1, 1, 1, 1, 1, 1};
+int ENC_DIR[] = {-1, 1, 1, 1, 1, 1, 1, 1, 1};
 // +1 if encoder max value is at the minimum joint angle, 0 otherwise
-int ENC_MAX_AT_ANGLE_MIN[] = {1, 0, 1, 0, 0, 1};
+int ENC_MAX_AT_ANGLE_MIN[] = {1, 0, 1, 0, 0, 1, 0, 0, 0};
 // motor steps * ENC_MULT = encoder steps
-const float ENC_MULT[] = {10, 10, 10, 10, 5, 10};
+const float ENC_MULT[] = {10, 10, 10, 10, 5, 10, 10, 10, 10};
 
 // define axis limits in degrees, for calibration
-int JOINT_LIMIT_MIN[] = {-170, -42, -89, -180, -105, -180};
-int JOINT_LIMIT_MAX[] = {170, 90, 52, 180, 105, 180};
+int JOINT_LIMIT_MIN[] = {-170, -42, -89, -180, -105, -180, 0, 0, 0}; // NB! ?
+int JOINT_LIMIT_MAX[] = {170, 90, 52, 180, 105, 180, 3450, 3450, 3450}; // NB! ?
 
 ///////////////////////////////////////////////////////////////////////////////
 // ROS Driver Params
@@ -44,25 +47,77 @@ const int REST_ENC_POSITIONS[] = {75556, 23333, 49444, 89600, 11477, 40000};
 enum SM { STATE_TRAJ, STATE_ERR };
 SM STATE = STATE_TRAJ;
 
-const int NUM_JOINTS = 6;
+const int NUM_JOINTS = 6; // NB !  <- from param !?
+
 AccelStepper stepperJoints[NUM_JOINTS];
+AccelStepper LinearTrack;
 
 // calibration settings
 const int LIMIT_SWITCH_HIGH[] = {
-    1, 1, 1, 1, 1, 1};  // to account for both NC and NO limit switches
+    1, 1, 1, 1, 1, 1, 1, 1, 1};  // to account for both NC and NO limit switches
 const int CAL_DIR[] = {-1, -1, 1,
-                       -1, -1, 1};  // joint rotation direction to limit switch
+                       -1, -1, 1,
+                       -1, -1, -1}; // NB! ? // joint rotation direction to limit switch
 const int CAL_SPEED = 500;          // motor steps per second
 const int CAL_SPEED_MULT[] = {
-    1, 1, 1, 2, 1, 1};  // multiplier to account for motor steps/rev
+    1, 1, 1, 2, 1, 1, 1, 1, 1};  // multiplier to account for motor steps/rev
 
 // speed and acceleration settings
-float JOINT_MAX_SPEED[] = {30.0, 30.0, 30.0, 30.0, 30.0, 30.0};  // deg/s
-float JOINT_MAX_ACCEL[] = {10.0, 10.0, 10.0, 10.0, 10.0, 10.0};  // deg/s^2
-char JOINT_NAMES[] = {'A', 'B', 'C', 'D', 'E', 'F'};
+float JOINT_MAX_SPEED[] = {30.0, 30.0, 30.0, 30.0, 30.0, 30.0, 30.0, 30.0, 30.0};  // deg/s
+float JOINT_MAX_ACCEL[] = {10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0};  // deg/s^2
+char JOINT_NAMES[] = {'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I'};
 
 // num of encoder steps in range of motion of joint
 int ENC_RANGE_STEPS[NUM_JOINTS];
+
+const int PANIC_BTN = 39;
+bool PanicSTop = false;
+unsigned long PanicStopCooldown = 0;
+
+bool PanicBtnPressed() {
+    static elapsedMillis debounceTimer;    // timer to implement debounce lockout period
+    unsigned int debounceDelay = 50;      // duration of the debounce lockout period (ms)
+    static bool debounceLockout = false;   // true during enforcement of the debounce lockout
+    static int oldLevel;                   // last switch input reading
+    int newLevel;                          // current switch input value
+    bool edgeDetected;                     // set true if a falling or rising edge is detected
+    bool newSwitchPress;                   // set true if a falling edge is detected
+
+    newSwitchPress = false;                // initialize to false, may be set true later
+    if (debounceLockout) {                 // if currently in the debounce lockout period
+        if (debounceTimer > debounceDelay) // and if the lockout delay has expired
+            debounceLockout = false;       // clear this flag to indicate end of lockout
+    }
+    else {                                 // not in the lockout period
+        newLevel = digitalRead(PANIC_BTN); // read the current switch level
+        edgeDetected = (newLevel != oldLevel); // edge = diff between current and previous values
+        oldLevel = newLevel;               // current level becomes previous value for next time around
+        if (edgeDetected) {                // if an edge has been detected (rising or falling)
+            debounceTimer = 0;             // start the lockout period
+            debounceLockout = true;        // update the switch state to indicate the lockout is in effect
+            if (newLevel == LOW)           // falling edge was detected
+                newSwitchPress = true;     // so switch was pressed
+        }
+    }
+    if (newSwitchPress){
+      //Serial8.println("panic pressed");
+    }
+    return newSwitchPress;                 // return value is true only if a new switch press is detected
+}
+
+void PanicStopSteppers(){
+ if (PanicStopCooldown == 0){
+  //Serial8.println("Panic stop");
+  for (int i = 0; i < NUM_JOINTS; ++i) {
+    stepperJoints[i].stop();
+    stepperJoints[i].run();
+      }
+      LinearTrack.stop();
+      LinearTrack.run();
+  PanicStopCooldown = millis();
+  }
+}
+
 
 void setup() {
   Serial.begin(9600);
