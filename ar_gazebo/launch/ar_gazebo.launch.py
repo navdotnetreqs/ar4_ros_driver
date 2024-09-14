@@ -35,6 +35,7 @@ from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import Command, FindExecutable, PathJoinSubstitution, LaunchConfiguration
 from launch_ros.actions import Node
 from launch_ros.substitutions import FindPackageShare
+from launch.conditions import IfCondition
 
 # I really couldn't find another way than this to set the yaml file to be used based on launch-config-argument..
 def launch_setup(context, *args, **kwargs):
@@ -114,6 +115,7 @@ def launch_setup(context, *args, **kwargs):
     gripper_joint_controller_spawner_started = Node(
         package="controller_manager",
         executable="spawner",
+        condition=IfCondition(include_gripper),
         arguments=[
             "gripper_controller", "-c", "/controller_manager",
             "--controller-manager-timeout", "60"

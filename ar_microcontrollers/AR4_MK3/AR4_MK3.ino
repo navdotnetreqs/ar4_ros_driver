@@ -252,7 +252,6 @@ void stateTRAJ() {
       String function = inData.substring(0, 2);
       // update trajectory information
       if (function == "MT") {
-Serial8.printf("MT: %s\n",inData.c_str());
         readMotorSteps(curMotorSteps);
 
 

@@ -3,8 +3,6 @@
   <xacro:arg name="simulation_controllers" default="" />
   <xacro:arg name="include_gripper" default="True" />
   <xacro:arg name="include_track" default="True" />
-  <xacro:arg name="include_camera" default="True" />
-
 
   <xacro:include filename="$(find ar_description)/urdf/ar.urdf.xacro" />
   <!--<xacro:include
@@ -20,11 +18,13 @@
     joint_offset_parameters_file="$(find ar_hardware_interface)/config/joint_offsets/$(arg ar_model).yaml"
   />
 
-  <xacro:ar_gripper_ros2_control
-    name="ARGripperGazeboSystem"
-    plugin_name="gazebo_ros2_control/GazeboSystem"
-    serial_port="None"
-  />
+  <xacro:if value="$(arg include_gripper)">
+    <xacro:ar_gripper_ros2_control
+      name="ARGripperGazeboSystem"
+      plugin_name="gazebo_ros2_control/GazeboSystem"
+      serial_port="None"
+    />
+  </xacro:if>
 
   <gazebo reference="world" />
   <gazebo>
