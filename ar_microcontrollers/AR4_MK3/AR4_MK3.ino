@@ -66,7 +66,8 @@ int ENC_RANGE_STEPS[NUM_JOINTS];
 
 void setup() {
   Serial.begin(9600);
-
+Serial8.begin(9600);
+Serial8.println("init");
   for (int i = 0; i < NUM_JOINTS; ++i) {
     pinMode(STEP_PINS[i], OUTPUT);
     pinMode(DIR_PINS[i], OUTPUT);
@@ -251,7 +252,9 @@ void stateTRAJ() {
       String function = inData.substring(0, 2);
       // update trajectory information
       if (function == "MT") {
+Serial8.printf("MT: %s\n",inData.c_str());
         readMotorSteps(curMotorSteps);
+
 
         // update host with joint positions
         encStepsToJointPos(curMotorSteps, curJointPos);

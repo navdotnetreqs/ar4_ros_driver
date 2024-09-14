@@ -4,7 +4,7 @@ from launch_ros.substitutions import FindPackageShare
 
 from launch.conditions import IfCondition
 from launch import LaunchDescription
-from launch.actions import DeclareLaunchArgument
+from launch.actions import DeclareLaunchArgument, OpaqueFunction
 from launch.substitutions import LaunchConfiguration
 from launch.substitutions import Command, FindExecutable, PathJoinSubstitution
 
