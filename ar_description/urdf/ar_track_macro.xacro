@@ -95,7 +95,7 @@
       <axis xyz="1 0 0" />
       <limit
         lower="${(-track_length+plate_width) /2}"
-        upper="${(track_length-plate_width) /2}"
+        upper="${(track_length-plate_width)/2}"
         effort="100" velocity="0.5" />
     </joint>
 

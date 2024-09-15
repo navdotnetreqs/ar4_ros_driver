@@ -54,6 +54,10 @@ are defined
       <joint name="joint_5" value="0" />
       <joint name="joint_6" value="0" />
     </group_state>
+    <xacro:if value="$(arg include_track)">
+      <disable_collisions link1="linear_base_link" link2="linear_slider_link" reason="Adjacent" />
+      <disable_collisions link1="linear_slider_link" link2="base_link" reason="Adjacent" />
+    </xacro:if>
     <disable_collisions link1="base_link" link2="link_1" reason="Adjacent" />
     <disable_collisions link1="link_1" link2="link_2" reason="Adjacent" />
     <disable_collisions link1="link_1" link2="link_3" reason="Never" />
@@ -63,6 +67,5 @@ are defined
     <disable_collisions link1="link_3" link2="link_6" reason="Never" />
     <disable_collisions link1="link_4" link2="link_5" reason="Adjacent" />
     <disable_collisions link1="link_5" link2="link_6" reason="Adjacent" />
-
   </xacro:macro>
 </robot>

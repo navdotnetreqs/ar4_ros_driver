@@ -8,6 +8,8 @@
 #include <stdio.h>
 #include <string>
 
+const bool SIMUL = false;
+String SIMULPOS="JPA-170B40.5C84.5D184.4E85.4F179.0G0\n";
 // Firmware version
 const char* VERSION = "0.0.2";
 
@@ -17,22 +19,24 @@ const char* VERSION = "0.0.2";
 
 const int STEP_PINS[] = {0, 2, 4, 6, 8, 10, 12, 32, 34};
 const int DIR_PINS[] = {1, 3, 5, 7, 9, 11, 13, 33, 35};
-const int LIMIT_PINS[] = {26, 27, 28, 29, 30, 31, 36, 37, 38};
+const int LIMIT_PINS[] = {26, 27, 28, 29, 30, 31, 37, 36, 38}; // 37 / 36 !?
 
 const float MOTOR_STEPS_PER_DEG[] = {44.44444444, 55.55555556, 55.55555556,
                                      49.77777777, 21.86024888, 22.22222222,
                                      14.2857, 14.2857, 14.2857};
-const int MOTOR_STEPS_PER_REV[] = {400, 400, 400, 400, 800, 400};
+//const int MOTOR_STEPS_PER_REV[] = {400, 400, 400, 400, 800, 400};
+
+// 1000 steps on linear joint is 14.2857 cm !
 
 // set encoder pins
 Encoder encPos[6] = {Encoder(14, 15), Encoder(17, 16), Encoder(19, 18),
                      Encoder(20, 21), Encoder(23, 22), Encoder(24, 25)};
 // +1 if encoder direction matches motor direction, -1 otherwise
-int ENC_DIR[] = {-1, 1, 1, 1, 1, 1, 1, 1, 1};
+int ENC_DIR[] = {-1, 1, 1, 1, 1, 1, -1, 1, 1};
 // +1 if encoder max value is at the minimum joint angle, 0 otherwise
 int ENC_MAX_AT_ANGLE_MIN[] = {1, 0, 1, 0, 0, 1, 0, 0, 0};
 // motor steps * ENC_MULT = encoder steps
-const float ENC_MULT[] = {10, 10, 10, 10, 5, 10, 10, 10, 10};
+const float ENC_MULT[] = {10, 10, 10, 10, 5, 10, 1, 10, 10};
 
 // define axis limits in degrees, for calibration
 int JOINT_LIMIT_MIN[] = {-170, -42, -89, -180, -105, -180, 0, 0, 0}; // NB! ?
@@ -43,7 +47,7 @@ int JOINT_LIMIT_MAX[] = {170, 90, 52, 180, 105, 180, 3450, 3450, 3450}; // NB! ?
 ///////////////////////////////////////////////////////////////////////////////
 
 // roughly equals 0, 0, 0, 0, 0, 0 degrees
-const int REST_ENC_POSITIONS[] = {75556, 23333, 49444, 89600, 11477, 40000};
+const int REST_ENC_POSITIONS[] = {75556, 23333, 49444, 89600, 11477, 40000, 0};
 enum SM { STATE_TRAJ, STATE_ERR };
 SM STATE = STATE_TRAJ;
 
@@ -57,14 +61,14 @@ const int LIMIT_SWITCH_HIGH[] = {
     1, 1, 1, 1, 1, 1, 1, 1, 1};  // to account for both NC and NO limit switches
 const int CAL_DIR[] = {-1, -1, 1,
                        -1, -1, 1,
-                       -1, -1, -1}; // NB! ? // joint rotation direction to limit switch
+                       1, -1, -1}; // NB! ? // joint rotation direction to limit switch
 const int CAL_SPEED = 500;          // motor steps per second
 const int CAL_SPEED_MULT[] = {
     1, 1, 1, 2, 1, 1, 1, 1, 1};  // multiplier to account for motor steps/rev
 
 // speed and acceleration settings
-float JOINT_MAX_SPEED[] = {30.0, 30.0, 30.0, 30.0, 30.0, 30.0, 30.0, 30.0, 30.0};  // deg/s
-float JOINT_MAX_ACCEL[] = {10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0};  // deg/s^2
+float JOINT_MAX_SPEED[] = {30.0, 30.0, 30.0, 30.0, 30.0, 30.0, 100.0, 30.0, 30.0};  // deg/s
+float JOINT_MAX_ACCEL[] = {10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 30.0, 10.0, 10.0};  // deg/s^2
 char JOINT_NAMES[] = {'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I'};
 
 // num of encoder steps in range of motion of joint
@@ -118,11 +122,12 @@ void PanicStopSteppers(){
   }
 }
 
+unsigned long debugprint = millis();
 
 void setup() {
   Serial.begin(9600);
-Serial8.begin(9600);
-Serial8.println("init");
+//Serial8.begin(9600);
+//Serial8.println("init");
   for (int i = 0; i < NUM_JOINTS; ++i) {
     pinMode(STEP_PINS[i], OUTPUT);
     pinMode(DIR_PINS[i], OUTPUT);
@@ -215,6 +220,7 @@ void calibrateJoints(int* calJoints) {
   for (int i = 0; i < NUM_JOINTS; i++) {
     stepperJoints[i].setSpeed(CAL_SPEED * CAL_SPEED_MULT[i] * CAL_DIR[i]);
   }
+
   while (!calAllDone) {
     calAllDone = true;
     for (int i = 0; i < NUM_JOINTS; ++i) {
@@ -242,6 +248,7 @@ void moveAwayFromLimitSwitch() {
   for (int i = 0; i < NUM_JOINTS; i++) {
     stepperJoints[i].setSpeed(CAL_SPEED * CAL_SPEED_MULT[i] * CAL_DIR[i] * -1);
   }
+
   for (int j = 0; j < 10000000; j++) {
     for (int i = 0; i < NUM_JOINTS; ++i) {
       stepperJoints[i].runSpeed();
@@ -276,8 +283,8 @@ void stateTRAJ() {
   int curMotorSteps[NUM_JOINTS];
   readMotorSteps(curMotorSteps);
 
-  double cmdJointPos[NUM_JOINTS];
-  int cmdEncSteps[NUM_JOINTS];
+  double cmdJointPos[NUM_JOINTS+1];
+  int cmdEncSteps[NUM_JOINTS+1];
   for (int i = 0; i < NUM_JOINTS; ++i) {
     cmdEncSteps[i] = curMotorSteps[i];
   }
@@ -293,6 +300,15 @@ void stateTRAJ() {
     stepperJoints[i].setMinPulseWidth(10);
   }
 
+
+    LinearTrack = AccelStepper(1, STEP_PINS[6], DIR_PINS[6]);
+    LinearTrack.setPinsInverted(false, false,
+                                     false);  // DM320T / DM332T --> CW
+    LinearTrack.setAcceleration(JOINT_MAX_ACCEL[6] *
+                                     MOTOR_STEPS_PER_DEG[6]);
+    LinearTrack.setMaxSpeed(JOINT_MAX_SPEED[6] * MOTOR_STEPS_PER_DEG[6]);
+    LinearTrack.setMinPulseWidth(10);
+
   // start loop
   while (STATE == STATE_TRAJ) {
     char received = '\0';
@@ -304,15 +320,24 @@ void stateTRAJ() {
 
     // process message when new line character is received
     if (received == '\n') {
+
+//        Serial8.println(inData.c_str());
+
       String function = inData.substring(0, 2);
       // update trajectory information
       if (function == "MT") {
-        readMotorSteps(curMotorSteps);
+        if (SIMUL){
+                  SIMULPOS = "JP"+inData.substring(2);
+                  Serial.print(SIMULPOS);
+                  break;
+        }
 
+        readMotorSteps(curMotorSteps);
 
         // update host with joint positions
         encStepsToJointPos(curMotorSteps, curJointPos);
-        String msg = String("JP") + JointPosToString(curJointPos);
+        String msg = String("JP") + JointPosToString(curJointPos)+"G"+String( ENC_DIR[6]*LinearTrack.currentPosition()/100000.0 );
+
         Serial.println(msg);
 
         // get new position commands
@@ -322,12 +347,27 @@ void stateTRAJ() {
         int msgIdxJ4 = inData.indexOf('D');
         int msgIdxJ5 = inData.indexOf('E');
         int msgIdxJ6 = inData.indexOf('F');
+        int msgIdxJ7 = inData.indexOf('G');
+
         cmdJointPos[0] = inData.substring(msgIdxJ1 + 1, msgIdxJ2).toFloat();
         cmdJointPos[1] = inData.substring(msgIdxJ2 + 1, msgIdxJ3).toFloat();
         cmdJointPos[2] = inData.substring(msgIdxJ3 + 1, msgIdxJ4).toFloat();
         cmdJointPos[3] = inData.substring(msgIdxJ4 + 1, msgIdxJ5).toFloat();
         cmdJointPos[4] = inData.substring(msgIdxJ5 + 1, msgIdxJ6).toFloat();
+        if (msgIdxJ7 == -1){
         cmdJointPos[5] = inData.substring(msgIdxJ6 + 1).toFloat();
+        } else {
+        cmdJointPos[5] = inData.substring(msgIdxJ6 + 1, msgIdxJ7).toFloat();
+        cmdJointPos[6] = inData.substring(msgIdxJ7 + 1).toFloat(); 
+          //cmdEncSteps[6] = cmdJointPos[6] * MOTOR_STEPS_PER_DEG[6] * ENC_DIR[6];
+cmdEncSteps[6] = ENC_DIR[6]*cmdJointPos[6]*100000;//*ENC_MUL[6]*ENC_DIR[6]/MOTOR_STEPS_PER_DEG[6];
+        }//-1* 10 / 14 *
+        // 0.14 ->  /    0.1 -> 100000
+        // 10 steppiä on 14 mm
+        // 1 step 0.14 mm
+        // tuli 0.01 (eli 1 cm) -> 0.01* (ENC_MULT[6]/MOTOR_STEPS_PER_DEG[6] )
+        // 1000 steps 0.141 
+        // step/mm = 1000 / 0.14 
         jointPosToEncSteps(cmdJointPos, cmdEncSteps);
 
         // update target joint positions
@@ -346,6 +386,32 @@ void stateTRAJ() {
             stepperJoints[i].run();
           }
         }
+
+        if (msgIdxJ7>=0){
+          if ((cmdJointPos[6]>0.2) && (millis()-debugprint>100)){
+            //Serial.printf("DB: G?? %s\n", inData.c_str());
+            debugprint=millis();
+          }
+          //Serial.printf("DB: Linear track moveto %i / (%f)\n", cmdEncSteps[6],cmdJointPos[6]);
+          LinearTrack.moveTo(cmdEncSteps[6]);
+        }
+
+      } else if (function == "CL"){ // calibrate linear track 
+        while(!reachedLimitSwitch(6)){
+        LinearTrack.setSpeed(CAL_SPEED*CAL_SPEED_MULT[6]*CAL_DIR[6]);
+          LinearTrack.runSpeed();
+           }
+        LinearTrack.setSpeed(0);
+        LinearTrack.setCurrentPosition(0);
+
+        // move away from switch
+        LinearTrack.setSpeed(CAL_SPEED * CAL_SPEED_MULT[6] * CAL_DIR[6] * -1);
+        for (int j = 0; j < 10000000; j++) {
+          LinearTrack.runSpeed();
+        }
+        LinearTrack.setSpeed(0);
+
+
       } else if (function == "JC") {
         // calibrate all joints
         int calJoints[] = {1, 1, 1, 1, 1, 1};
@@ -400,7 +466,12 @@ void stateTRAJ() {
       } else if (function == "JP") {
         readMotorSteps(curMotorSteps);
         encStepsToJointPos(curMotorSteps, curJointPos);
-        String msg = String("JP") + JointPosToString(curJointPos);
+        if (SIMUL){
+                  Serial.print(SIMULPOS);
+                  break;
+        }
+        String msg = String("JP") + JointPosToString(curJointPos)+"G"+String( ENC_DIR[6]*LinearTrack.currentPosition()/100000.0 );
+
         Serial.println(msg);
       } else if (function == "SS") {
         updateStepperSpeed(inData);
@@ -416,7 +487,7 @@ void stateTRAJ() {
         encStepsToJointPos(curMotorSteps, curJointPos);
 
         // update host with joint positions
-        String msg = String("JP") + JointPosToString(curJointPos);
+        String msg = String("JP") + JointPosToString(curJointPos)+"G"+String( ENC_DIR[6]*LinearTrack.currentPosition()/100000.0 );
         Serial.println(msg);
       } else if (function == "ST") {
         if (!initStateTraj(inData)) {
@@ -430,6 +501,7 @@ void stateTRAJ() {
     for (int i = 0; i < NUM_JOINTS; ++i) {
       stepperJoints[i].run();
     }
+      LinearTrack.run();
   }
 }
 

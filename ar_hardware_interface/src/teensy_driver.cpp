@@ -2,7 +2,6 @@
 
 #include <chrono>
 #include <thread>
-
 #define FW_VERSION "0.0.2"
 
 namespace ar_hardware_interface {
@@ -11,6 +10,8 @@ void TeensyDriver::init(std::string port, int baudrate, int num_joints) {
   // @TODO read version from config
   // @TODO ISR stop button
   version_ = FW_VERSION;
+
+  RCLCPP_INFO(logger_, "Number of joints %i", num_joints);
 
   // establish connection with teensy board
   boost::system::error_code ec;
@@ -125,7 +126,7 @@ void TeensyDriver::exchange(std::string outMsg) {
       done = true;
     } else {
       // unknown header
-      RCLCPP_WARN(logger_, "Unknown header %s", header.c_str());
+      RCLCPP_WARN(logger_, "Unknown header %s, %s", header.c_str(), inMsg.c_str());
       done = true;
     }
   }
@@ -203,13 +204,20 @@ void TeensyDriver::updateJointPositions(std::string msg) {
   size_t idx4 = msg.find("D", 2) + 1;
   size_t idx5 = msg.find("E", 2) + 1;
   size_t idx6 = msg.find("F", 2) + 1;
+  size_t idx7 = msg.find("G", 2); // +1 breaks npos :-
+
   joint_positions_deg_[0] = std::stod(msg.substr(idx1, idx2 - idx1));
   joint_positions_deg_[1] = std::stod(msg.substr(idx2, idx3 - idx2));
   joint_positions_deg_[2] = std::stod(msg.substr(idx3, idx4 - idx3));
   joint_positions_deg_[3] = std::stod(msg.substr(idx4, idx5 - idx4));
   joint_positions_deg_[4] = std::stod(msg.substr(idx5, idx6 - idx5));
-  joint_positions_deg_[5] = std::stod(msg.substr(idx6));
-}
+  if (idx7 == std::string::npos ){
+    joint_positions_deg_[5] = std::stod(msg.substr(idx6));
+    } else {
+    joint_positions_deg_[5] = std::stod(msg.substr(idx6, idx7+1 - idx6));
+    joint_positions_deg_[6] = std::stod(msg.substr(idx7+1));
+    }
+  }
 
 // NB! Test this through, handle more joints
 void TeensyDriver::updateJointPositions2(const std::string msg) {

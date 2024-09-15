@@ -38,6 +38,6 @@ joint_limits:
     max_velocity: 0.02 # m/s
   linear_slider_joint:
     has_acceleration_limits: true
-    max_acceleration: 0.08727 # 5 deg/s^2
+    max_acceleration: 0.01 # 5 deg/s^2
     has_velocity_limits: true
-    max_velocity: 0.2618 # 15 deg/s
+    max_velocity: 0.02 # 15 deg/s

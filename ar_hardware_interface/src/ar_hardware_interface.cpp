@@ -57,7 +57,11 @@ hardware_interface::CallbackReturn ARHardwareInterface::on_activate(
   driver_.getJointPositions(actuator_positions_);
   for (size_t i = 0; i < info_.joints.size(); ++i) {
     // apply offsets, convert from deg to rad for moveit
-    joint_positions_[i] = degToRad(actuator_positions_[i] + joint_offsets_[i]);
+    if (i==6){ // NB! really really lazy but don't touch the linear joint..
+        joint_positions_[i] = (actuator_positions_[i] + joint_offsets_[i]);
+    } else {
+        joint_positions_[i] = degToRad(actuator_positions_[i] + joint_offsets_[i]);
+    }
     joint_position_commands_[i] = joint_positions_[i];
   }
 
@@ -96,7 +100,11 @@ hardware_interface::return_type ARHardwareInterface::read(
   driver_.getJointPositions(actuator_positions_);
   for (size_t i = 0; i < info_.joints.size(); ++i) {
     // apply offsets, convert from deg to rad for moveit
-    joint_positions_[i] = degToRad(actuator_positions_[i] + joint_offsets_[i]);
+    if (i==6){ // NB! really really lazy but don't touch the linear joint..
+        joint_positions_[i] = (actuator_positions_[i] + joint_offsets_[i]);
+    } else {
+      joint_positions_[i] = degToRad(actuator_positions_[i] + joint_offsets_[i]);
+    }
   }
   std::string logInfo = "Joint Pos: ";
   for (size_t i = 0; i < info_.joints.size(); i++) {
@@ -113,8 +121,12 @@ hardware_interface::return_type ARHardwareInterface::write(
     const rclcpp::Time& /*time*/, const rclcpp::Duration& /*period*/) {
   for (size_t i = 0; i < info_.joints.size(); ++i) {
     // convert from rad to deg, apply offsets
+    if (i==6){ actuator_commands_[i] = // NB! really really lazy but don't touch the linear joint..
+        (joint_position_commands_[i]) - joint_offsets_[i];
+    } else {
     actuator_commands_[i] =
         radToDeg(joint_position_commands_[i]) - joint_offsets_[i];
+    }
   }
   std::string logInfo = "Joint Cmd: ";
   for (size_t i = 0; i < info_.joints.size(); i++) {
