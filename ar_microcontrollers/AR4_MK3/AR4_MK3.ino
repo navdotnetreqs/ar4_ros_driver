@@ -137,6 +137,8 @@ void setup() {
     ENC_RANGE_STEPS[i] =
         static_cast<int>(MOTOR_STEPS_PER_DEG[i] * joint_range * ENC_MULT[i]);
   }
+
+    pinMode(PANIC_BTN, INPUT_PULLUP);
 }
 
 bool initStateTraj(String inData) {
@@ -221,7 +223,8 @@ void calibrateJoints(int* calJoints) {
     stepperJoints[i].setSpeed(CAL_SPEED * CAL_SPEED_MULT[i] * CAL_DIR[i]);
   }
 
-  while (!calAllDone) {
+
+  while ((!PanicSTop)&&(!calAllDone)) {
     calAllDone = true;
     for (int i = 0; i < NUM_JOINTS; ++i) {
       // if joint is not calibrated yet
@@ -238,9 +241,11 @@ void calibrateJoints(int* calJoints) {
         }
       }
     }
+  PanicSTop = PanicSTop || PanicBtnPressed();
   }
-  delay(2000);
-
+  if (!PanicSTop){
+    delay(2000);
+  }
   return;
 }
 
@@ -319,7 +324,7 @@ void stateTRAJ() {
     }
 
     // process message when new line character is received
-    if (received == '\n') {
+    if ((received == '\n') && (!PanicSTop)) {
 
 //        Serial8.println(inData.c_str());
 
@@ -416,6 +421,7 @@ cmdEncSteps[6] = ENC_DIR[6]*cmdJointPos[6]*100000;//*ENC_MUL[6]*ENC_DIR[6]/MOTOR
         // calibrate all joints
         int calJoints[] = {1, 1, 1, 1, 1, 1};
         calibrateJoints(calJoints);
+        if (PanicSTop){ return; };
 
         // record encoder steps
         int calSteps[6];
@@ -497,7 +503,21 @@ cmdEncSteps[6] = ENC_DIR[6]*cmdJointPos[6]*100000;//*ENC_MUL[6]*ENC_DIR[6]/MOTOR
       }
       // clear message
       inData = "";
+    } else if ((received == '\n') && (PanicSTop)){
+       Serial.println("DB: Panic stopped. Please reset w/ button.");
     }
+
+     if (PanicBtnPressed()){
+      if ((PanicSTop) && (millis()-PanicStopCooldown>3000)){
+        //Serial8.println("released");
+        PanicSTop = false;
+        PanicStopCooldown = 0;
+      } else {
+      PanicSTop = true;
+      PanicStopSteppers();
+      }
+    }
+
     for (int i = 0; i < NUM_JOINTS; ++i) {
       stepperJoints[i].run();
     }
