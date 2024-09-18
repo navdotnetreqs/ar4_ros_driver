@@ -69,7 +69,7 @@ const int CAL_DIR[] = { -1, -1, 1,
                         1, -1, -1 };  // NB! ? // joint rotation direction to limit switch
 const int CAL_SPEED = 500;            // motor steps per second
 const int CAL_SPEED_MULT[] = {
-  1, 1, 1, 2, 1, 1, 1, 1, 1
+  1, 1, 1, 2, 1, 1, 2, 1, 1
 };  // multiplier to account for motor steps/rev
 
 // speed and acceleration settings
@@ -151,7 +151,7 @@ bool initStateTraj(String inData) {
 void readMotorSteps(int* motorSteps) {
   for (int i = 0; i < NUM_JOINTS; ++i) {
     if (i == 6) {
-      motorSteps[i] = stepperJoints[i].currentPosition() / 100000.0 * MOTOR_STEPS_PER_DEG[6];
+      motorSteps[i] = stepperJoints[i].currentPosition();
     } else
       motorSteps[i] = encPos[i].read() / ENC_MULT[i];
   }
@@ -159,7 +159,11 @@ void readMotorSteps(int* motorSteps) {
 
 void encStepsToJointPos(int* encSteps, double* jointPos) {
   for (int i = 0; i < NUM_JOINTS; ++i) {
-    jointPos[i] = encSteps[i] / MOTOR_STEPS_PER_DEG[i] * ENC_DIR[i];
+    if (i==6){
+       jointPos[i] = encSteps[i]/ 100000.0* ENC_DIR[i];
+    } else {
+      jointPos[i] = encSteps[i] / MOTOR_STEPS_PER_DEG[i] * ENC_DIR[i];
+    }
   }
 }
 
@@ -177,7 +181,14 @@ String JointPosToString(double* jointPos) {
   }
   return out;
 }
-
+String EncPosToString(int* encPos) {
+  String out;
+  for (int i = 0; i < NUM_JOINTS; ++i) {
+    out += JOINT_NAMES[i];
+    out += String(encPos[i], 6);
+  }
+  return out;
+}
 void updateStepperSpeed(String inData) {
   int idxSpeedJ1 = inData.indexOf('A');
   int idxAccelJ1 = inData.indexOf('B');
@@ -239,6 +250,7 @@ void calibrateJoints(int* calJoints) {
       }
     }
     PanicSTop = PanicSTop || PanicBtn.isPressed();
+    if (PanicSTop){Serial.println("panic 1");}
   }
   if (!PanicSTop) {
     delay(2000);
@@ -246,19 +258,25 @@ void calibrateJoints(int* calJoints) {
   return;
 }
 
-void moveAwayFromLimitSwitch() {
+void moveAwayFromLimitSwitch(int* calJoints) {
   for (int i = 0; i < NUM_JOINTS; i++) {
-    stepperJoints[i].setSpeed(CAL_SPEED * CAL_SPEED_MULT[i] * CAL_DIR[i] * -1);
+    if (calJoints[i]){
+      stepperJoints[i].setSpeed(CAL_SPEED * CAL_SPEED_MULT[i] * CAL_DIR[i] * -1);
+    }
   }
 
   for (int j = 0; j < 10000000; j++) {
     for (int i = 0; i < NUM_JOINTS; ++i) {
-      stepperJoints[i].runSpeed();
+      if (calJoints[i]){
+        stepperJoints[i].runSpeed();
+      }
     }
   }
   // redundancy
   for (int i = 0; i < NUM_JOINTS; i++) {
-    stepperJoints[i].setSpeed(0);
+    if (calJoints[i]){
+      stepperJoints[i].setSpeed(0);
+    }
   }
   delay(2000);
   return;
@@ -340,16 +358,17 @@ void stateTRAJ() {
         // calibrate all joints, JC = all joints, JC125 = joints 125
         int calJoints[NUM_JOINTS] = {0};
 
-        if (inData.length() == 2){
+          String JointsToCalibrateStr=inData.substring(2);
+        if (JointsToCalibrateStr.length()==1){ // no params given
           for (int i = 0; i < NUM_JOINTS; ++i){
-            inData+=String(i+1);
+            JointsToCalibrateStr+=String(i+1);
+            }
           }
-        }
-        // Start processing from the 3rd character, since the string always starts with "JC"
-          for (int i = 2; inData[i] != '\0'; i++) {
-              int index = inData[i] - '1';  // Convert char to zero-based index
-              calJoints[index] = 1;              // Set the corresponding element to 1
         
+        // Start processing from the 3rd character, since the string always starts with "JC"
+          for (unsigned int i = 0; i<JointsToCalibrateStr.length(); i++) {
+              int index = JointsToCalibrateStr[i] - '1';  // Convert char to zero-based index
+              calJoints[index] = 1;              // Set the corresponding element to 1
         }
         
         JointCalibration(calJoints);
@@ -362,6 +381,12 @@ void stateTRAJ() {
           break;
         }
         String msg = String("JP") + JointPosToString(curJointPos);
+
+        Serial.println(msg);
+      } else if (function == "MP") { // Motor pos
+        readMotorSteps(curMotorSteps);
+
+        String msg = String("MP") + EncPosToString(curMotorSteps);
 
         Serial.println(msg);
       } else if (function == "SS") {
@@ -403,7 +428,7 @@ void stateTRAJ() {
       }
     }
 
-    if (millis() - debugprint > 250) {
+    /*if (millis() - debugprint > 250) {
       Serial.print("DB: SW: ");
       updateAllSwitches();
       for (int i = 0; i < NUM_JOINTS; ++i) {
@@ -412,12 +437,12 @@ void stateTRAJ() {
       Serial.printf("P:%i ", PanicBtn.isPressed());
       Serial.println();
       debugprint = millis();
-    }
+    }*/
 
-    for (int i = 0; i < NUM_JOINTS; ++i) {
+    for (int i = 0; i < NUM_JOINTS; ++i) { // NB!
       stepperJoints[i].run();
 
-      if (switches[i].isPressed()) {  // safety stop   // NB! untested, now for all joints .. maybe implement "can only move away from it"
+     /* if (switches[i].isPressed()) {  // safety stop   // NB! untested, now for all joints .. maybe implement "can only move away from it"
         stepperJoints[i].stop();
 
         stepperJoints[i].setSpeed(CAL_SPEED * CAL_DIR[i] * -1);
@@ -426,7 +451,7 @@ void stateTRAJ() {
           stepperJoints[i].runSpeed();
         }
         stepperJoints[i].setSpeed(0);
-      }
+      }*/
     }
   }
 }
@@ -461,9 +486,9 @@ void loop() {
 void MoveTo(String inData){
 
   readMotorSteps(curMotorSteps);
-
       // update host with joint positions
       encStepsToJointPos(curMotorSteps, curJointPos);
+
       //String msg = String("JP") + JointPosToString(curJointPos) + "G" + String(ENC_DIR[6] * LinearTrack.currentPosition() / 100000.0);
       String msg = String("JP") + JointPosToString(curJointPos);
 
@@ -488,21 +513,19 @@ void MoveTo(String inData){
       } else {
         cmdJointPos[5] = inData.substring(msgIdxJ6 + 1, msgIdxJ7).toFloat();
         cmdJointPos[6] = inData.substring(msgIdxJ7 + 1).toFloat();
-        //cmdEncSteps[6] = cmdJointPos[6] * MOTOR_STEPS_PER_DEG[6] * ENC_DIR[6];
-        cmdEncSteps[6] = ENC_DIR[6] * cmdJointPos[6] * 100000;  //*ENC_MUL[6]*ENC_DIR[6]/MOTOR_STEPS_PER_DEG[6];
-      }                                                         //-1* 10 / 14 *
-      // 0.14 ->  /    0.1 -> 100000
-      // 10 steppiä on 14 mm
-      // 1 step 0.14 mm
-      // tuli 0.01 (eli 1 cm) -> 0.01* (ENC_MULT[6]/MOTOR_STEPS_PER_DEG[6] )
-      // 1000 steps 0.141
-      // step/mm = 1000 / 0.14
+        // with this weird calculation we get this to match after jointpostoencsteps, 0.01 -> 1 cm
+        cmdJointPos[6] =   cmdJointPos[6] * 100000/ MOTOR_STEPS_PER_DEG[6];
+      }
+
       jointPosToEncSteps(cmdJointPos, cmdEncSteps);
+// NB! Maybe has to do with float having a shitty precision and not really good for the linear track !
+
+//cmdEncSteps[6] = ENC_DIR[6]*cmdJointPos[6]*100000;//*ENC_MUL[6]*ENC_DIR[6]/MOTOR_STEPS_PER_DEG[6];
+//Serial.printf("-> %i\n", cmdEncSteps[6]);
 
       // update target joint positions
       readMotorSteps(curMotorSteps);
       for (int i = 0; i < NUM_JOINTS; ++i) {
-
         if (i == 6) {
           stepperJoints[6].moveTo(cmdEncSteps[6]);
         } else {
@@ -524,9 +547,11 @@ void MoveTo(String inData){
 
 
 void JointCalibration(int calJoints[NUM_JOINTS]){
-  Serial.println();
+  Serial.printf("DB: Calibrate joints ");
   for (int i=0; i<NUM_JOINTS; i++){
-  Serial.printf("CAL %i",i);
+    if (calJoints[i]){
+      Serial.printf(" %i",i+1);
+    }
   }
   Serial.println();
 
@@ -536,57 +561,66 @@ void JointCalibration(int calJoints[NUM_JOINTS]){
         // record encoder steps
         int calSteps[NUM_JOINTS];
         for (int i = 0; i < NUM_JOINTS; ++i) {
-          if (i != 6) {
-            calSteps[i] = encPos[i].read();
-          } else {
-            calSteps[i] = stepperJoints[i].currentPosition() / 100000.0 * MOTOR_STEPS_PER_DEG[i];
+          if (calJoints[i]){ // only for the ones to calibrate!
+            if (i != 6) {
+              calSteps[i] = encPos[i].read();
+            } else {
+              calSteps[i] = stepperJoints[i].currentPosition();
+            }
           }
         }
 
         for (int i = 0; i < NUM_JOINTS; ++i) {
-          if (i != 6) {
-            encPos[i].write(ENC_RANGE_STEPS[i] * ENC_MAX_AT_ANGLE_MIN[i]);
+          if (calJoints[i]){ // only for the ones to calibrate!
+            if (i != 6) { // NB! what about 6 ?
+              encPos[i].write(ENC_RANGE_STEPS[i] * ENC_MAX_AT_ANGLE_MIN[i]);
+            } else {
+              stepperJoints[i].setCurrentPosition(0);
+            }
           }
         }
 
         // move away from the limit switches a bit so that if the next command
         // is in the wrong direction, the limit switches will not be run over
         // immediately and become damaged.
-        moveAwayFromLimitSwitch();
+        moveAwayFromLimitSwitch(calJoints);
 
         // return to original position
         for (int i = 0; i < NUM_JOINTS; ++i) {
-          stepperJoints[i].setAcceleration(JOINT_MAX_ACCEL[i] * MOTOR_STEPS_PER_DEG[i]);
-          stepperJoints[i].setMaxSpeed(JOINT_MAX_SPEED[i] * MOTOR_STEPS_PER_DEG[i]);
+          if (calJoints[i]){ // only for the ones to calibrate!
+            stepperJoints[i].setAcceleration(JOINT_MAX_ACCEL[i] * MOTOR_STEPS_PER_DEG[i]);
+            stepperJoints[i].setMaxSpeed(JOINT_MAX_SPEED[i] * MOTOR_STEPS_PER_DEG[i]);
+          }
         }
 
         bool restPosReached = false;
         while (!restPosReached) {
           updateAllSwitches();
           PanicSTop = PanicSTop | PanicBtn.isPressed();
-          if (PanicSTop) { return; };
+          if (PanicSTop) { 
+            Serial.println("panic 3");
+            return;
+          };
 
           restPosReached = true;
           readMotorSteps(curMotorSteps);
 
-          stepperJoints[6].moveTo(0.01);  // NB!
-
           for (int i = 0; i < NUM_JOINTS; ++i) {
-            if (switches[i].isPressed()) {
-              PanicSTop = true;  // if for some reason a limit switch is hit !
-              return;
-            }
-            if (abs(REST_ENC_POSITIONS[i] / ENC_MULT[i] - curMotorSteps[i]) > 10) {
-              restPosReached = false;
-              float target_pos =
-                (REST_ENC_POSITIONS[i] / ENC_MULT[i] - curMotorSteps[i]) * ENC_DIR[i];
-              stepperJoints[i].move(target_pos);
-              stepperJoints[i].run();
-            }
-            if (i == 6) {
-              if (abs(stepperJoints[i].currentPosition() - 0.01) > 0.01) {
-                restPosReached = false;
-                stepperJoints[i].run();
+            if (calJoints[i]){ // only for the ones to calibrate!
+              /*if (switches[i].isPressed()) { NB! Can't really do this.. should first make sure all were released
+                PanicSTop = true;  // if for some reason a limit switch is hit !
+                Serial.println("DB: Panic! Hit limit switch returning to rest!");
+                return;
+              }*/
+// NB! Linear track never returns to exactly 0 after calibration and behaves weird with really small values !!!
+if (i!=6){
+                if (abs(REST_ENC_POSITIONS[i] / ENC_MULT[i] - curMotorSteps[i]) > 10) {
+                  restPosReached = false;
+                  float target_pos =
+                    (REST_ENC_POSITIONS[i] / ENC_MULT[i] - curMotorSteps[i]) * ENC_DIR[i];
+                  stepperJoints[i].move(target_pos);
+                  stepperJoints[i].run();
+                }
               }
             }
           }
