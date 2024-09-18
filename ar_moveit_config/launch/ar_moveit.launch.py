@@ -44,6 +44,7 @@ from launch.substitutions import (
     LaunchConfiguration,
     PathJoinSubstitution,
 )
+from launch.conditions import IfCondition
 
 
 def load_yaml(package_name, file_name):
@@ -59,6 +60,7 @@ def launch_setup(context, *args, **kwargs):
     include_track = LaunchConfiguration("include_track")
     rviz_config_file = LaunchConfiguration("rviz_config_file")
     ar_model_config = LaunchConfiguration("ar_model")
+    launch_rviz = LaunchConfiguration("launch_rviz")
 
 
     robot_description_content = Command([
@@ -110,7 +112,7 @@ def launch_setup(context, *args, **kwargs):
         "robot_description_planning":
         load_yaml(
             "ar_moveit_config",
-            os.path.join("config", "joint_limits.yaml"),
+            os.path.join("config", "joint_limits.yaml"), #<// NB!
         )
     }
 
@@ -197,6 +199,7 @@ def launch_setup(context, *args, **kwargs):
             robot_description_planning,               
             {"use_sim_time": use_sim_time}
         ],
+        condition=IfCondition(launch_rviz),
     )
 
     nodes_to_start = [move_group_node, rviz_node]
@@ -236,5 +239,12 @@ def generate_launch_description():
                               default_value="ar4_mk3",
                               choices=["ar4", "ar4_mk3"],
                               description="Model of AR4"))
+    declared_arguments.append(
+        DeclareLaunchArgument(
+            "launch_rviz",
+            default_value="True",
+            description="Launch rviz",
+            choices=["True", "False"],
+        ))
 
     return LaunchDescription(declared_arguments + [OpaqueFunction(function=launch_setup)])
